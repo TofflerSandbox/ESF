@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ESH — Enterprise Scaling Hub · clickable prototype v0.1
+  Implements the ESH Data Model & Lifecycle Specification v0.1 against a seeded
+  SYNTHETIC portfolio (~200 projects; JT4V hand-seeded as the flagship record).
+  Views: Dashboard · Pipeline board · Projects table · Project record · Decision brief generator.
+  No backend; deterministic in-browser data generation; no CUI.
+-->
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-CYHT9Q9WGX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-CYHT9Q9WGX');
+  // SPA view tracking: report each hash-route change as a page_view
+  window.addEventListener('hashchange',function(){
+    gtag('event','page_view',{page_location:location.href,page_path:'/'+location.hash});
+  });
+</script>
+<title>ESH — Enterprise Scaling Hub (Prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Libre+Caslon+Text:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --navy:#16233C;--navy2:#1F3050;--ink:#1C2434;--slate:#525B69;--slate2:#8A9099;
+ --gold:#C9A961;--goldD:#8A6B25;--goldBg:#F7F0DF;--red:#9B1B2E;--redBg:#FAF0F1;
+ --j68:#3A6FB0;--j68D:#27568F;--j68Bg:#EEF3FA;--spon:#2F7D5C;--sponBg:#EDF5F0;
+ --paper:#F4F3EF;--card:#FFF;--line:#E2DFD6;--line2:#CFCBBF;
+ --p0:#002060;--p1:#3F90CB;--p2:#3F90CB;--p3:#CE0F3E;--p4:#CE0F3E;--p5:#F9B018;--pt:#8A9099;
+ --sans:'Public Sans',-apple-system,sans-serif;--mono:'IBM Plex Mono',monospace;--serif:'Libre Caslon Text',Georgia,serif;
+}
+body{font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--paper)}
+a{color:var(--j68D);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2.5px solid var(--goldD);outline-offset:2px;border-radius:2px}
+.mark{background:var(--red);color:#fff;text-align:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;padding:3px 10px;text-transform:uppercase}
+/* top bar */
+#top{background:var(--navy);color:#fff;padding:10px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+#top .brand{display:flex;align-items:baseline;gap:10px}
+#top .brand b{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+#top .brand b span{color:var(--gold)}
+#top .brand small{font-family:var(--mono);font-size:9.5px;color:#93A0B8;letter-spacing:.18em}
+#top nav{display:flex;gap:4px;margin-left:8px}
+#top nav a{color:#B9C2D2;padding:7px 13px;border-radius:6px;font-weight:600;font-size:13px}
+#top nav a:hover{color:#fff;background:rgba(255,255,255,.07)}
+#top nav a.on{color:var(--navy);background:var(--gold)}
+#top .proto{margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--gold);border:1px solid var(--goldD);padding:4px 10px;border-radius:4px}
+main{max-width:90vw;margin:0 auto;padding:20px 22px 60px}
+h2.vt{font-family:var(--serif);font-size:24px;color:var(--navy);margin:6px 0 2px}
+.vsub{color:var(--slate);font-size:13px;margin-bottom:16px}
+/* cards & chips */
+.card{background:var(--card);border:1px solid var(--line);border-radius:9px}
+.chd{padding:10px 16px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--slate);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cbd{padding:14px 16px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip i{font-style:normal;width:7px;height:7px;border-radius:50%;display:inline-block}
+.mono{font-family:var(--mono)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:13px 16px}
+.kpi .v{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--navy)}
+.kpi .l{font-size:11px;color:var(--slate);margin-top:2px;line-height:1.35}
+.kpi.warn .v{color:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:980px){.grid2,.grid3{grid-template-columns:1fr}}
+svg text{font-family:var(--sans)}
+/* alerts */
+.alert-row{display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);font-size:12.5px;align-items:flex-start;cursor:pointer}
+.alert-row:last-child{border-bottom:none}
+.alert-row:hover{background:var(--goldBg)}
+.alert-row .tag{flex-shrink:0;font-family:var(--mono);font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:1px}
+/* board */
+#board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:start;padding-bottom:8px}
+@media(max-width:1080px){#board{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:640px){#board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.col{min-width:0;background:#EDEBE4;border:1px solid var(--line);border-radius:9px}
+.col .colh{padding:8px 10px;border-bottom:1px solid var(--line2)}
+.col .colh .t{font-size:11.5px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;gap:6px;white-space:nowrap}
+.col .colh .s{font-family:var(--mono);font-size:10px;color:var(--slate)}
+.col .cards{padding:6px;display:flex;flex-direction:column;gap:6px;max-height:62vh;overflow-y:auto}
+.pcard{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:7px;padding:7px 9px;cursor:pointer}
+.pcard:hover{box-shadow:0 2px 8px rgba(22,35,60,.12)}
+.pcard .code{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--slate)}
+.pcard .nm{font-size:12px;font-weight:600;color:var(--navy);line-height:1.3;margin:2px 0 5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .mt{display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;font-size:10px;color:var(--slate2)}
+.pcard .mt span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+/* table */
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:12px}
+.fbar input[type=search]{flex:1;min-width:180px;border:1px solid var(--line2);border-radius:6px;padding:7px 10px;font:inherit}
+.fbar select{border:1px solid var(--line2);border-radius:6px;padding:7px 8px;font:inherit;font-size:12.5px;background:#fff;color:var(--ink)}
+.fbar .cnt{font-family:var(--mono);font-size:11px;color:var(--slate);margin-left:auto}
+.fbar button{border:1px solid var(--line2);background:#fff;border-radius:6px;padding:7px 11px;font-size:12px;font-weight:600;color:var(--slate)}
+table.list{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+table.list th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate2);text-align:left;padding:9px 12px;background:#EDEBE4;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none}
+table.list td{padding:9px 12px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle}
+table.list tbody tr{cursor:pointer}
+table.list tbody tr:hover{background:var(--goldBg)}
+table.list tr:last-child td{border-bottom:none}
+.money{font-family:var(--mono);font-size:11.5px;font-weight:600}
+/* record */
+.bk{font-size:12.5px;font-weight:600;color:var(--slate)}
+.rhead{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;margin:8px 0 14px}
+.rhead h2{font-family:var(--serif);font-size:25px;color:var(--navy);line-height:1.2;max-width:760px}
+.rhead .code{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--goldD);letter-spacing:.08em}
+.btn{background:var(--navy);color:var(--gold);border:none;border-radius:7px;padding:10px 16px;font-weight:700;font-size:13px}
+.btn:hover{background:var(--navy2)}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line2)}
+.rgrid{display:grid;grid-template-columns:1.45fr 1fr;gap:14px;align-items:start}
+@media(max-width:980px){.rgrid{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:4px 12px;font-size:12.5px}
+.kv dt{color:var(--slate2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;padding-top:2px}
+.kv dd{color:var(--ink)}
+.crit{display:flex;gap:10px;padding:9px 12px;border-radius:7px;align-items:flex-start;border:1px solid transparent}
+.crit+.crit{margin-top:4px}
+.crit .st{flex-shrink:0;font-family:var(--mono);font-size:9px;font-weight:700;padding:2.5px 8px;border-radius:4px;margin-top:1px;letter-spacing:.06em}
+.crit.hard{background:var(--goldBg);border-color:#E4D3A6}
+.crit .tx{font-size:12.5px;line-height:1.45;color:var(--slate)}
+.crit .tx b{color:var(--navy);display:block}
+.hardtag{font-family:var(--mono);font-size:8.5px;color:var(--goldD);border:1px solid var(--gold);border-radius:3px;padding:1px 5px;margin-left:7px;vertical-align:1px}
+.gh-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.gh-tbl th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--slate2);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.gh-tbl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.gh-tbl tr:last-child td{border-bottom:none}
+.tl{list-style:none}
+.tl li{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12px}
+.tl li:last-child{border-bottom:none}
+.tl .d{font-family:var(--mono);font-size:10.5px;color:var(--slate2);flex-shrink:0;width:74px;padding-top:1px}
+.banner{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:14px;border:1px solid}
+/* brief */
+#v-brief{background:#fff;border:1px solid var(--line);border-radius:10px;max-width:980px;margin:0 auto;padding:0 0 26px}
+.bf-pad{padding:0 44px}
+.bf-sec{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--goldD);margin:26px 0 8px;text-transform:uppercase}
+.bf-box{border:1px solid #D9C58E;background:var(--goldBg);border-radius:7px;padding:13px 16px;font-size:13px}
+.sigrow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+.sig{border:1px solid var(--line2);border-radius:8px;padding:14px 16px}
+.sig .ln{border-bottom:1px solid var(--slate);height:30px;margin-top:18px}
+.sig small{color:var(--slate2);font-size:10px}
+@media print{
+ #top,.mark.no-print,#bf-actions,.bk{display:none!important}
+ body{background:#fff}main{padding:0;max-width:none}
+ #v-brief{border:none;border-radius:0}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div class="mark">Prototype — Synthetic Data Only — Pre-Decisional // Toffler Internal R&amp;D // Not for Distribution</div>
+<header id="top">
+  <div class="brand"><b>ESH<span>.</span></b><small>ENTERPRISE SCALING HUB · DLA J68</small></div>
+  <nav>
+    <a href="#/" data-r="dash">Dashboard</a>
+    <a href="#/board" data-r="board">Pipeline</a>
+    <a href="#/projects" data-r="list">Projects</a>
+  </nav>
+  <div class="proto">SYNTHETIC DATA · PROTOTYPE v0.1</div>
+</header>
+<main>
+  <div id="v-dash" class="view"></div>
+  <div id="v-board" class="view hide"></div>
+  <div id="v-list" class="view hide"></div>
+  <div id="v-rec" class="view hide"></div>
+  <div id="v-brief" class="view hide"></div>
+</main>
+<div class="mark">Prototype — Synthetic Data Only — Pre-Decisional // Toffler Internal R&amp;D // Not for Distribution</div>
+<script>
+/* ============ reference data (from the ESF / spec §6) ============ */
+const PH_COL=['#002060','#3F90CB','#3F90CB','#CE0F3E','#CE0F3E','#F9B018'];   // placemat palette (2026 Roundtable)
+const PH_TXT=['#002060','#2E7CB7','#2E7CB7','#B30D36','#B30D36','#B07607'];   // darkened for text contrast
+const PH_NAME=['Stage 0 · Intake','Phase I · Feasibility','Phase II · Prototype','Phase III · Ltd Deployment','Phase IV · Transition','Stage 5 · At Scale'];
+const PH_SHORT=['Stage 0','Phase I','Phase II','Phase III','Phase IV','Stage 5'];
+const DESIGN_MONTHS=[[0.7,1],[3,6],[18,24],[12,24],[12,18],[0,0]];
+const CRITERIA={
+ 0:[{t:'Co-sponsor named (signed LOI)',hard:1},{t:'Problem statement scoped'},{t:'Value path declared'},{t:'ROM estimate provided'},{t:'No disqualifying duplication'}],
+ 1:[{t:'JHU-APL TRA fully satisfactory (5/5)',hard:1},{t:'Value hypothesis validated on DLA data'},{t:'CONOPS operationally realistic'},{t:'Final S&T report delivered'},{t:'Co-sponsor reaffirms commitment'}],
+ 2:[{t:'PRR passed (SRR→PRR complete)'},{t:'J8 Finance ROI certification in writing',hard:1},{t:'Transition path formally declared'},{t:'Co-sponsor written reaffirmation'},{t:'Contracting, Finance, RM, J6 on record'}],
+ 3:[{t:'Signed funding commitment — SES level',hard:1},{t:'Multi-site deployment with real users (≥2)'},{t:'J6 ATO plan approved'},{t:'J6 sandbox connectivity established'},{t:'OGC/J7 bridge eligibility documented'}],
+ 4:[{t:'Operational owner formal acceptance'},{t:'J7 contract closeout / novation confirmed',hard:1},{t:'Funding mechanism active'},{t:'Performance review schedule established'},{t:'Lessons learned documented'}]};
+const VP={REVENUE:{l:'↑ Revenue',c:'#2F7D5C'},RISK:{l:'↓ Risk',c:'#8A6B25'},COST:{l:'↓ Cost',c:'#27568F'},PERFORMANCE:{l:'↑ Performance',c:'#16233C'}};
+const PROG=[
+ {c:'AMTR',n:'Acquisition Modernization Technology Research',f:'LogTech'},
+ {c:'ERP',n:'Energy Readiness Program',f:'LogTech'},
+ {c:'SDD',n:'Strategic Distribution & Disposition',f:'LogTech'},
+ {c:'SCM-S',n:'Supply Chain Management — Sustainability',f:'LogTech'},
+ {c:'LTR',n:'Logistics Technology Research',f:'LogTech'},
+ {c:'AME',n:'Advanced Microcircuit Emulation',f:'ManTech'},
+ {c:'BATTNET',n:'Battery Network',f:'ManTech'},
+ {c:'AM',n:'Additive Manufacturing',f:'ManTech'},
+ {c:'CASTING',n:'Casting',f:'ManTech'},
+ {c:'FORGING',n:'Forging',f:'ManTech'},
+ {c:'DLIR',n:'Defense Logistics Information Research',f:'ManTech'},
+ {c:'MUST',n:'Military Unique Sustainment Technology',f:'ManTech'},
+ {c:'SUBNET',n:'Subsistence Network',f:'ManTech'},
+ {c:'ARTET',n:'Applied Research & Testing Emergent Technologies',f:'ManTech'},
+ {c:'SBIP SM',n:'Small Business Innovation Program — Strategic Materials',f:'SBIP'}];
+const PROGMAP=Object.fromEntries(PROG.map(p=>[p.c,p]));
+const FAMC={LogTech:'#27568F',ManTech:'#8A6B25',SBIP:'#2F7D5C'};
+function assignProgram(tech,dom){
+  if(rnd()<0.06)return 'ARTET';
+  if(rnd()<0.05)return 'SBIP SM';
+  if(tech==='Additive Manufacturing')return 'AM';
+  if(/Fuel|Energy/i.test(dom)||/Energy/i.test(tech))return 'ERP';
+  if(/Subsistence/i.test(dom))return 'SUBNET';
+  if(/Disposition|Depot|Distribution|Kitting/i.test(dom)||/Robotics|Autonomous|ITV|Cold Chain/i.test(tech))return pick(['SDD','SDD','LTR','SCM-S','AMTR']);
+  if(/Document AI|Demand Forecasting|Digital Twin/i.test(tech))return pick(['DLIR','AMTR','LTR']);
+  if(/Counterfeit|Blockchain/i.test(tech))return pick(['LTR','DLIR']);
+  if(/Wearable/i.test(tech))return 'MUST';
+  if(/Cyber|Computer Vision|Predictive/i.test(tech))return 'LTR';
+  return pick(['LTR','SCM-S','AMTR','DLIR','AME','BATTNET','CASTING','FORGING','AM','MUST']);
+}
+const SPONSORS=['DLA Troop Support','DLA Distribution','DLA Aviation','DLA Land & Maritime','DLA Energy','DLA Disposition Services','DLA Logistics Ops (J3)','DLA Information Ops (J6)'];
+const CLASSES=['I','II','III','IIIP','IV','V','VII','VIII','IX'];
+const TECHS=['ITV / RFID','Additive Manufacturing','Predictive Maintenance','Demand Forecasting AI','Warehouse Robotics','Counterfeit Detection','Computer Vision Inspection','Digital Twin','Autonomous Ground Vehicles','Cold Chain Monitoring','Document AI / NLP','Energy Resilience','Wearable Telemetry','Edge Cybersecurity','Blockchain Provenance'];
+const DOMAINS=['Class IX Consumables','Depot Operations','Bulk Fuel Distribution','Subsistence Cold Chain','Medical Materiel','Construction & Barrier Materiel','Aviation Spares','Maritime Spares','Disposition Workflows','Order Fulfillment','Supplier Risk','Theater Distribution','Kitting Operations','Packaging & Preservation','Demand Planning'];
+const FN=['A. Brooks','M. Okafor','J. Alvarez','S. Whitfield','D. Nakamura','R. Castellanos','K. Donnelly','P. Venkataraman','L. Mercer','T. Osei','C. Lindqvist','H. Barrow','N. Petrov','G. Marchetti','E. Stanton','F. Adeyemi','W. Kowalski','B. Tran','V. Ramos','J. McAllister'];
+const SES=['SES R. Hollings','SES M. Vance','SES D. Achebe','SES K. Brandt','SES L. Otero','SES T. Maddox','SES P. Iyer','SES C. Rowe'];
+
+/* ============ seeded generator ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=mulberry32(20260612);
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const ri=(a,b)=>Math.floor(rnd()*(b-a+1))+a;
+const rf=(a,b)=>rnd()*(b-a)+a;
+const NOW=new Date(2026,5,12);
+const addM=(d,m)=>{const x=new Date(d);x.setDate(1);x.setMonth(x.getMonth()+Math.floor(m));x.setDate(Math.min(28,3+Math.floor((m%1)*25)));return x};
+const fmt=d=>d?d.toISOString().slice(0,10):'—';
+const fmtMY=d=>d?d.toLocaleDateString('en-US',{month:'short',year:'numeric'}):'—';
+const FY=d=>d.getMonth()>=9?d.getFullYear()+1:d.getFullYear();
+const $k=v=>v>=1e6?('$'+(v/1e6).toFixed(2)+'M'):('$'+Math.round(v/1e3)+'K');
+const monthsBetween=(a,b)=>(b-a)/2629800000;
+
+const PROJECTS=[];
+function makeValueCases(dom,tech,rom,reach){
+  const mk={
+    REVENUE:()=>{const m=pick(['WCF sales recovery','disposition proceeds','reutilization value']);
+      const base=rf(1.5,6)*1e6, pct=rf(6,18), ann=base*pct/100;
+      return {metric:m,base:$k(base)+'/yr',proj:$k(base+ann)+'/yr',annual:ann,
+        arg:'Grows '+m+' in '+dom.toLowerCase()+': better data quality raises recoverable value across the enterprise; projected +'+$k(ann)+'/yr ('+pct.toFixed(0)+'% lift) against the documented Stage 0 baseline.'};},
+    COST:()=>{const m=pick(['inventory carrying cost','expedited transport spend','manual processing labor']);
+      const base=rf(1.2,7)*1e6, pct=rf(8,25), ann=base*pct/100;
+      return {metric:m,base:$k(base)+'/yr',proj:$k(base-ann)+'/yr',annual:ann,
+        arg:'Cuts '+m+' in '+dom.toLowerCase()+': '+tech.toLowerCase()+' removes manual touchpoints and rework; projected '+$k(ann)+'/yr savings ('+pct.toFixed(0)+'% reduction) vs. baseline.'};},
+    RISK:()=>{const m=pick(['loss & diversion exposure','supply disruption exposure','counterfeit escape risk']);
+      const ann=rf(0.3,2)*1e6;
+      return {metric:m,base:'expected loss '+$k(ann*rf(1.4,2.4))+'/yr',proj:'expected loss '+$k(ann*rf(0.2,0.5))+'/yr',annual:ann,
+        arg:'Buys down '+m+' in '+dom.toLowerCase()+': continuous '+tech.toLowerCase()+' coverage replaces episodic manual checks; expected avoided loss '+$k(ann)+'/yr vs. the Stage 0 baseline.'};},
+    PERFORMANCE:()=>{const m=pick(['order fill rate','asset visibility','materiel availability']);
+      const base=rf(58,86), proj=Math.min(98,base+rf(5,18)), ann=rf(0.2,1.2)*1e6;
+      return {metric:m,base:base.toFixed(0)+'%',proj:proj.toFixed(0)+'%',annual:ann,
+        arg:'Raises '+m+' in '+dom.toLowerCase()+' from '+base.toFixed(0)+'% to '+proj.toFixed(0)+'%: a readiness gain monetized conservatively at '+$k(ann)+'/yr in avoided workarounds.'};}};
+  const keys=Object.keys(VP);const p1=pick(keys);
+  const vps=[{path:p1,primary:true,...mk[p1]()}];
+  if(rnd()<0.32){let p2=pick(keys.filter(k=>k!==p1));vps.push({path:p2,primary:false,...mk[p2]()});}
+  const totalAnnual=vps.reduce((a,v)=>a+v.annual,0);
+  const roi=Math.max(1.1,Math.min(8.5,(totalAnnual*5)/rom));
+  return {vps,roi,certified:reach>=2};
+}
+function makeProject(fate){ // fate: {kind:'active',phase} | {kind:'sunset',gate} | {kind:'descope'} | {kind:'scale'}
+  const tech=pick(TECHS), dom=pick(DOMAINS);
+  const name=tech+' for '+dom;
+  const code=(tech.match(/[A-Z]/g).join('').slice(0,3)+dom.match(/[A-Z]/g).join('').slice(0,2)+'-'+ri(10,99));
+  const sponsors=[pick(SPONSORS)]; if(rnd()<0.18){let s2=pick(SPONSORS); if(s2!==sponsors[0])sponsors.push(s2);}
+  const reach = fate.kind==='active'?fate.phase : fate.kind==='sunset'?fate.gate : fate.kind==='descope'?ri(3,4) : 5;
+  // sample durations for phases completed/entered
+  const durs=[]; for(let p=0;p<=Math.min(reach,4);p++){const[a,b]=DESIGN_MONTHS[p];durs[p]=rf(a,b)*rf(0.85,1.45);}
+  let elapsed=0; for(let p=0;p<reach;p++)elapsed+=durs[p];
+  let tail = fate.kind==='active'? durs[reach]*rf(0.15,0.9) : fate.kind==='scale'? rf(6,30) : rf(0.3,0.8)*(durs[reach]||2);
+  const entry=addM(NOW,-(elapsed+tail));
+  // walk phases
+  const phaseRec=[],gates=[],arts=[];let cur=entry;
+  const artFor=(g,d)=>{const map={0:['LOI','Letter of Intent — '+sponsors[0]],1:['TRA_REPORT','JHU-APL TRA — fully satisfactory'],2:['ROI_CERT','J8 ROI certification (written)'],3:['COMMITMENT_INSTRUMENT','Gate 3 commitment instrument (OGC-approved)'],4:['CLOSEOUT_CONFIRMATION','J7 closeout / novation confirmation']};arts.push({type:map[g][0],title:map[g][1],date:new Date(d)});};
+  for(let p=0;p<reach;p++){const exit=addM(cur,durs[p]);phaseRec.push({phase:p,in:new Date(cur),out:new Date(exit)});gates.push({gate:p,outcome:'PASS',date:new Date(exit)});artFor(p,exit);cur=exit;}
+  let status,sunset=null,curPhase=reach;
+  if(fate.kind==='active'){status=rnd()<0.07?'HOLD':'ACTIVE';phaseRec.push({phase:reach,in:new Date(cur),out:null});}
+  else if(fate.kind==='scale'){status='AT_SCALE';phaseRec.push({phase:5,in:new Date(cur),out:null});curPhase=5;}
+  else{const end=addM(cur,tail);
+    const reasons=['No funding owner committed by POM deadline','TRA revealed unresolvable technical barriers','CONOPS assessed operationally unrealistic','Co-sponsor withdrew after results review','ROI insufficient to justify next-phase investment','ATO denial unresolvable','Existing program found to address the need','Integration failures at multi-site deployment'];
+    if(fate.kind==='sunset'){status='SUNSET';sunset={gate:fate.gate,reason:pick(reasons)};gates.push({gate:fate.gate,outcome:'SUNSET',date:end});}
+    else{status='DESCOPED';sunset={gate:reach,reason:'Descoped: partial deployment formally documented and credited'};gates.push({gate:reach,outcome:'DESCOPE',date:end});}
+    phaseRec.push({phase:reach,in:new Date(cur),out:end});}
+  // criteria for the gate concluding current phase (active only)
+  let crits=null;
+  if(status==='ACTIVE'||status==='HOLD'){
+    const g=Math.min(curPhase,4);
+    const prog=tail/(durs[curPhase]||1);
+    crits=CRITERIA[g].map((c,i)=>({...c,status:(rnd()<prog*1.05&&!(c.hard&&prog<0.85))?'MET':'PENDING'}));
+  }
+  // funding
+  const fund=[];const J='J68 R&D';const SP=sponsors[0];
+  const add=(fy,app,src,amt,pop)=>fund.push({fy,app,src,amt:Math.round(amt),pop:pop||null});
+  const has=p=>reach>p||(reach===p);
+  if(has(1)&&reach>=1){const d=phaseRec.find(r=>r.phase===1);if(d)add(FY(d.in),'RDT&E BA3',J,rf(80,140)*1e3);}
+  if(reach>=2){const d=phaseRec.find(r=>r.phase===2);if(d){const tot=rf(0.7,1.4)*1e6;add(FY(d.in),'RDT&E BA3',J,tot*0.55);add(FY(d.in)+1,'RDT&E BA3',J,tot*0.45);}}
+  if(reach>=3){const d=phaseRec.find(r=>r.phase===3);if(d){add(FY(d.in),'RDT&E BA6',J,rf(100,350)*1e3, addM(d.in,ri(14,30)));add(FY(d.in),rnd()<.5?'O&M':'WCF',SP,rf(250,600)*1e3);}}
+  if(reach>=4){const d=phaseRec.find(r=>r.phase===4);if(d){for(let y=FY(d.in);y<=Math.min(FY(NOW),FY(d.in)+3);y++)add(y,rnd()<.5?'WCF':'O&M',SP,rf(400,1100)*1e3);}}
+  // pathways
+  const paths=[];const np=rnd()<0.2?2:1;
+  for(let i=0;i<np;i++){const A=rnd()<0.55;
+    paths.push({path:A?'A — WCF':'B — POM',mech:A?'WCF rate / AOB entry':'POM program line ('+(rnd()<.5?'O&M':'Procurement')+')',
+      status:reach>=4?'ACTIVE':reach>=2?'COMMITTED':'DECLARED',
+      committed:reach>=2?fmtMY(gates.find(g=>g.gate===2&&g.outcome==='PASS')?.date):null,
+      clock:A?'18-mo rate-setting':'POM window Jul–Aug'});}
+  const pm=pick(FN),ses=pick(SES);
+  const rom=Math.round(rf(1.5,6)*1e6);
+  const vc=makeValueCases(dom,tech,rom,reach);
+  const proj={code,name,sponsors,portfolio:assignProgram(tech,dom),vp:vc.vps[0].path,vps:vc.vps,roi:vc.roi,roiCertified:vc.certified,cls:[pick(CLASSES)],
+    tech:[tech],nsn:reach>=3&&rnd()<0.6?[ri(1000,9999)+'-01-'+ri(100,999)+'-'+ri(1000,9999)]:[],
+    status,curPhase,entry,phaseRec,gates,arts,crits,fund,paths,sunset,
+    pm,ses,rom,
+    sites:reach>=3?ri(2,4):0,users:reach>=3?ri(25,400):0,
+    problem:'Limited visibility and manual process burden in '+dom.toLowerCase()+'; baseline documented at Stage 0.'};
+  // seed two deliberate ADA exposures among at-scale
+  return proj;
+}
+const fates=[];
+[[ 'active',0,40],['active',1,35],['active',2,28],['active',3,15],['active',4,9]].forEach(([k,p,n])=>{for(let i=0;i<n;i++)fates.push({kind:'active',phase:p})});
+[[0,15],[1,18],[2,14],[3,8],[4,1]].forEach(([g,n])=>{for(let i=0;i<n;i++)fates.push({kind:'sunset',gate:g})});
+for(let i=0;i<5;i++)fates.push({kind:'descope'});
+for(let i=0;i<16;i++)fates.push({kind:'scale'});
+fates.forEach(f=>PROJECTS.push(makeProject(f)));
+// deliberate ADA exposures: J68 RDT&E PoP beyond G4 on two at-scale projects
+PROJECTS.filter(p=>p.status==='AT_SCALE').slice(0,2).forEach(p=>{
+  const g4=p.gates.find(g=>g.gate===4)?.date||NOW;
+  p.fund.push({fy:FY(g4),app:'RDT&E BA6',src:'J68 R&D',amt:120000,pop:addM(g4,10),ada:true});});
+
+/* JT4V flagship (hand-seeded; structure real, details placeholder) */
+(function(){
+  const e=new Date(2023,3,10);
+  const g0=new Date(2023,4,5),g1=new Date(2023,10,20),g2=new Date(2025,8,30);
+  const p={code:'JT4V',name:'In-Transit Visibility for Class IV — Akua Tags (JT4V)',
+    sponsors:['DLA Troop Support','DLA Distribution'],portfolio:'LTR',vp:'RISK',cls:['IV'],
+    tech:['ITV / RFID'],nsn:['5675-01-XXX-XXXX (pending SOE entry)'],
+    status:'ACTIVE',curPhase:3,entry:e,
+    phaseRec:[{phase:0,in:e,out:g0},{phase:1,in:g0,out:g1},{phase:2,in:g1,out:g2},{phase:3,in:g2,out:null}],
+    gates:[{gate:0,outcome:'PASS',date:g0},{gate:1,outcome:'PASS',date:g1},{gate:2,outcome:'PASS',date:g2}],
+    arts:[{type:'LOI',title:'Letter of Intent — Troop Support & Distribution',date:g0},
+      {type:'TRA_REPORT',title:'JHU-APL TRA — fully satisfactory (5/5)',date:g1},
+      {type:'ROI_CERT',title:'J8 ROI certification (written)',date:g2},
+      {type:'OGC_DETERMINATION',title:'OGC/J7 bridge eligibility determination',date:new Date(2025,10,12)}],
+    crits:CRITERIA[3].map((c,i)=>({...c,status:i===0?'PENDING':'MET'})),
+    fund:[{fy:2024,app:'RDT&E BA3',src:'J68 R&D',amt:118000},
+      {fy:2024,app:'RDT&E BA3',src:'J68 R&D',amt:540000},{fy:2025,app:'RDT&E BA3',src:'J68 R&D',amt:460000},
+      {fy:2026,app:'RDT&E BA6',src:'J68 R&D',amt:240000,pop:new Date(2027,2,1)},
+      {fy:2026,app:'O&M',src:'DLA Troop Support',amt:380000}],
+    paths:[{path:'A — WCF',mech:'NSN under Troop Support Special Operations Equipment (WCF SCM item)',status:'COMMITTED',committed:'Sep 2025',clock:'18-mo rate-setting'},
+           {path:'B — POM',mech:'Enterprise ITV solution — program line (confirm with J8)',status:'COMMITTED',committed:'Sep 2025',clock:'POM window Jul–Aug'}],
+    vps:[
+      {path:'RISK',primary:true,metric:'loss & diversion exposure — CL IV in theater',base:'expected loss $1.8M/yr',proj:'expected loss $0.6M/yr',annual:1200000,
+       arg:'Buys down loss and diversion exposure for Class IV in theater: autonomous tag telemetry replaces episodic manual checkpoint reporting, shrinking the window in which construction & barrier materiel can be lost, diverted, or written off. Expected avoided loss $1.2M/yr against the Stage 0 baseline.'},
+      {path:'PERFORMANCE',primary:false,metric:'CL IV shipment visibility',base:'34% of shipments visible',proj:'92% of shipments visible',annual:400000,
+       arg:'Raises in-transit visibility of CL IV shipments from 34% to 92% (Phase III measured), feeding DLA and unit-level common operating pictures; monetized conservatively at $0.4M/yr in avoided expedites and duplicate orders.'}],
+    roi:1.9,roiCertified:true,
+    sunset:null,pm:'Dr. I. Chiu',ses:'SES — Troop Support & Distribution (dual)',rom:4200000,
+    sites:3,users:160,
+    problem:'Class IV (construction & barrier) materiel moves through theater with limited in-transit visibility; Akua tags provide autonomous ITV telemetry feeding DLA and unit-level common operating pictures.'};
+  PROJECTS.unshift(p);
+})();
+const byCode=c=>PROJECTS.find(p=>p.code===c);
+const j68Spend=p=>p.fund.filter(f=>f.src==='J68 R&D').reduce((a,f)=>a+f.amt,0);
+const lastGate=p=>p.gates.length?p.gates[p.gates.length-1]:null;
+const monthsInPhase=p=>{const r=p.phaseRec.find(x=>x.out===null);return r?Math.round(monthsBetween(r.in,NOW)):null};
+const decisionReady=p=>{if(p.status!=='ACTIVE'||!p.crits)return false;const pend=p.crits.filter(c=>c.status==='PENDING');if(pend.length===0)return true;return Math.min(p.curPhase,4)===3&&pend.length===1&&pend[0].hard;};
+/* alerts */
+function buildAlerts(){
+  const A=[];
+  PROJECTS.forEach(p=>{
+    p.fund.forEach(f=>{if(f.ada)A.push({tag:'ADA',c:'var(--red)',bg:'var(--redBg)',p,t:'J68 RDT&E PoP extends beyond Gate 4 — Anti-Deficiency exposure; J8/J7 review required.'})});
+    if((p.status==='ACTIVE')&&p.curPhase===2&&p.paths.some(x=>x.path.startsWith('B'))&&NOW.getMonth()>=4&&NOW.getMonth()<=7)
+      A.push({tag:'POM',c:'var(--goldD)',bg:'var(--goldBg)',p,t:'Path B project in Phase II — POM window closes Jul–Aug; missing it slips Gate 3 a full year.'});
+    if((p.status==='ACTIVE')&&p.curPhase>=2&&p.paths.some(x=>x.path.startsWith('A')&&x.status==='COMMITTED'))
+      {if(rnd()<0.18)A.push({tag:'18-MO',c:'var(--goldD)',bg:'var(--goldBg)',p,t:'Path A committed — verify WCF rate-setting started (18-month lead to execution year).'});}
+    const m=monthsInPhase(p);const d=DESIGN_MONTHS[p.curPhase];
+    if((p.status==='ACTIVE')&&m&&d[1]&&m>d[1]*1.25)A.push({tag:'CYCLE',c:'var(--slate)',bg:'#EDEBE4',p,t:'In '+PH_SHORT[p.curPhase]+' for '+m+' months — exceeds design maximum of '+d[1]+' by >25%.'});
+    if(p.status==='HOLD')A.push({tag:'HOLD',c:'var(--slate)',bg:'#EDEBE4',p,t:'On hold — no criterion movement; review at next portfolio session.'});
+    if(decisionReady(p))A.push({tag:'READY',c:'var(--spon)',bg:'var(--sponBg)',p,t:'All non-signature criteria MET — ready for Gate '+Math.min(p.curPhase,4)+' decision authority.'});
+  });
+  return A;
+}
+const ALERTS=buildAlerts();
+</script>
+<script>
+/* ============ shared UI bits ============ */
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function phaseChip(p){
+  if(p.status==='SUNSET')return `<span class="chip" style="background:var(--redBg);color:var(--red)">SUNSET · G${p.sunset.gate}</span>`;
+  if(p.status==='DESCOPED')return `<span class="chip" style="background:#EDEBE4;color:var(--slate)">DESCOPED</span>`;
+  const c=PH_COL[p.curPhase],ct=PH_TXT[p.curPhase];
+  return `<span class="chip" style="background:${c}14;color:${ct}"><i style="background:${c}"></i>${PH_SHORT[p.curPhase]}${p.status==='HOLD'?' · HOLD':''}${p.status==='AT_SCALE'?'':''}</span>`;
+}
+function locator(p,w){ // mini locator svg
+  w=w||230;const segW=(w-30)/6,h=10,y=6;let g='';
+  const reach=p.status==='AT_SCALE'?5:p.curPhase;
+  for(let i=0;i<6;i++){const on=i<=reach&&!(p.status==='SUNSET'&&i>p.curPhase);
+    g+=`<rect x="${i*(segW+5)}" y="${y}" width="${segW}" height="${h}" rx="2" fill="${on?PH_COL[i]:'#E7E4DC'}"/>`;}
+  if(p.status==='ACTIVE'||p.status==='HOLD'){const cx=(Math.min(p.curPhase,4)+1)*(segW+5)-2.5,cy=y+h/2;
+    g+=`<rect x="${cx-6}" y="${cy-6}" width="12" height="12" transform="rotate(45 ${cx} ${cy})" fill="#C9A961" stroke="#fff" stroke-width="1.5"/>`;}
+  if(p.status==='SUNSET'){const cx=(p.sunset.gate+1)*(segW+5)-2.5,cy=y+h/2;
+    g+=`<text x="${cx}" y="${cy+4.5}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--red)">✕</text>`;}
+  return `<svg viewBox="0 0 ${w} 24" width="${w}" height="24" aria-hidden="true">${g}</svg>`;
+}
+function barChartSVG(items,{w=560,h=190,fmt=v=>v,grid=true}={}){ // items:[{l,v,c,sub}]
+  const max=Math.max(...items.map(i=>i.v),1),pad=28,bw=(w-pad)/items.length;
+  let g='';
+  if(grid)for(let i=1;i<=3;i++){const yy=h-30-(h-50)*i/3;g+=`<line x1="${pad}" y1="${yy}" x2="${w}" y2="${yy}" stroke="#E7E4DC"/>`;}
+  items.forEach((it,i)=>{const bh=(h-50)*it.v/max,x=pad+i*bw+bw*0.16,y=h-30-bh;
+    g+=`<rect x="${x}" y="${y}" width="${bw*0.68}" height="${Math.max(bh,1)}" rx="3" fill="${it.c}"/>`;
+    g+=`<text x="${x+bw*0.34}" y="${y-5}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--navy)">${fmt(it.v)}</text>`;
+    g+=`<text x="${x+bw*0.34}" y="${h-16}" text-anchor="middle" font-size="9.5" fill="var(--slate)">${it.l}</text>`;
+    if(it.sub)g+=`<text x="${x+bw*0.34}" y="${h-5}" text-anchor="middle" font-size="8.5" fill="var(--slate2)">${it.sub}</text>`;});
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">${g}</svg>`;
+}
+function stackChartSVG(rows,{w=560,h=200}={}){ // rows:[{l, a, b}] a=j68 b=sponsor
+  const max=Math.max(...rows.map(r=>r.a+r.b),1),pad=34,bw=(w-pad)/rows.length;
+  let g='';
+  rows.forEach((r,i)=>{const x=pad+i*bw+bw*0.18,scale=(h-52)/max;
+    const ha=r.a*scale,hb=r.b*scale;
+    g+=`<rect x="${x}" y="${h-26-ha}" width="${bw*0.64}" height="${Math.max(ha,0.5)}" fill="var(--j68)"/>`;
+    g+=`<rect x="${x}" y="${h-26-ha-hb}" width="${bw*0.64}" height="${Math.max(hb,0.5)}" fill="var(--spon)"/>`;
+    g+=`<text x="${x+bw*0.32}" y="${h-30-ha-hb}" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--slate)">${((r.a+r.b)/1e6).toFixed(1)}</text>`;
+    g+=`<text x="${x+bw*0.32}" y="${h-12}" text-anchor="middle" font-size="9.5" fill="var(--slate)">FY${String(r.l).slice(2)}</text>`;});
+  g+=`<text x="2" y="12" font-size="9.5" fill="var(--slate2)">$M</text>`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto">${g}</svg>`;
+}
+</script>
+<script>
+/* ============ views ============ */
+function renderDash(){
+  const act=PROJECTS.filter(p=>p.status==='ACTIVE'||p.status==='HOLD');
+  const scale=PROJECTS.filter(p=>p.status==='AT_SCALE');
+  const sun=PROJECTS.filter(p=>p.status==='SUNSET'||p.status==='DESCOPED');
+  const ready=PROJECTS.filter(decisionReady);
+  const j68FY26=PROJECTS.flatMap(p=>p.fund).filter(f=>f.src==='J68 R&D'&&f.fy===2026).reduce((a,f)=>a+f.amt,0);
+  // funnel: reached vs passed
+  const funnel=[0,1,2,3,4].map(g=>{
+    const reached=PROJECTS.filter(p=>p.gates.some(x=>x.gate===g)||((p.status==='ACTIVE'||p.status==='HOLD')&&p.curPhase===g)).length;
+    const passed=PROJECTS.filter(p=>p.gates.some(x=>x.gate===g&&x.outcome==='PASS')).length;
+    const dead=PROJECTS.filter(p=>p.gates.some(x=>x.gate===g&&x.outcome!=='PASS')).length;
+    return {g,reached,passed,dead,rate:passed+dead?Math.round(100*passed/(passed+dead)):null};});
+  // cycle
+  const cyc=[0,1,2,3,4].map(ph=>{
+    const ds=PROJECTS.flatMap(p=>p.phaseRec.filter(r=>r.phase===ph&&r.out)).map(r=>monthsBetween(r.in,r.out));
+    return {ph,avg:ds.length?ds.reduce((a,b)=>a+b)/ds.length:0,n:ds.length};});
+  // funding by FY
+  const fys={};PROJECTS.flatMap(p=>p.fund).forEach(f=>{if(f.fy<2021||f.fy>2026)return;fys[f.fy]=fys[f.fy]||{a:0,b:0};f.src==='J68 R&D'?fys[f.fy].a+=f.amt:fys[f.fy].b+=f.amt;});
+  const fyRows=Object.keys(fys).sort().map(k=>({l:k,...fys[k]}));
+  const dist=[0,1,2,3,4,5].map(ph=>({l:PH_SHORT[ph],v:act.concat(scale).filter(p=>(p.status==='AT_SCALE'?5:p.curPhase)===ph).length,c:PH_COL[ph]}));
+  document.getElementById('v-dash').innerHTML=`
+  <h2 class="vt">Portfolio Dashboard</h2>
+  <div class="vsub">The J68 R&D portfolio under the Enterprise Scaling Framework · ${PROJECTS.length} projects of record · as of ${fmt(NOW)}</div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="v">${act.length}</div><div class="l">active projects in the pipeline</div></div>
+    <div class="kpi"><div class="v">${scale.length}</div><div class="l">capabilities at enterprise scale</div></div>
+    <div class="kpi"><div class="v">${ready.length}</div><div class="l">in the decision queue (criteria met, awaiting authority)</div></div>
+    <div class="kpi"><div class="v">${$k(j68FY26)}</div><div class="l">J68 RDT&E in FY26 across the portfolio</div></div>
+    <div class="kpi"><div class="v">${sun.length}</div><div class="l">managed exits (sunset / descoped) — portfolio learning</div></div>
+    <div class="kpi warn"><div class="v">${ALERTS.filter(a=>a.tag==='ADA').length}</div><div class="l">Anti-Deficiency exposures flagged for J8/J7 review</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="chd"><span>Active portfolio by phase</span><a href="#/board">open pipeline →</a></div><div class="cbd">${barChartSVG(dist)}</div></div>
+    <div class="card"><div class="chd"><span>Gate funnel — where projects die</span><span class="mono" style="letter-spacing:0">pass rate</span></div><div class="cbd">${barChartSVG(funnel.map(f=>({l:'G'+f.g,v:f.passed,c:'var(--navy)',sub:(f.rate!==null?f.rate+'% pass':'')})),{fmt:v=>v})}
+    <div style="font-size:11px;color:var(--slate2);margin-top:4px">Bars: cumulative PASS decisions per gate; label shows pass rate among decided. Early-gate attrition is the framework working as designed.</div></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="chd">Cycle time — actual vs design (months)</div><div class="cbd">${barChartSVG(cyc.map(c=>({l:PH_SHORT[c.ph],v:Math.round(c.avg*10)/10,c:PH_COL[c.ph],sub:'design '+DESIGN_MONTHS[c.ph][0]+'–'+DESIGN_MONTHS[c.ph][1]})),{fmt:v=>v+'m'})}</div></div>
+    <div class="card"><div class="chd"><span>Funding by FY — the handoff at portfolio level</span><span><span class="chip" style="background:var(--j68Bg);color:var(--j68D)">J68 RDT&E</span> <span class="chip" style="background:var(--sponBg);color:var(--spon)">Sponsor</span></span></div><div class="cbd">${stackChartSVG(fyRows)}</div></div>
+  </div>
+  <div class="card" style="margin-bottom:14px"><div class="chd"><span>Active portfolio by program</span>
+    <span>${Object.entries(FAMC).map(([f,c])=>`<span class="chip" style="background:${c}12;color:${c}">${f}</span>`).join(' ')}</span></div>
+    <div class="cbd" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:4px 26px">
+    ${(()=>{const counts=PROG.map(pr=>({...pr,v:act.filter(p=>p.portfolio===pr.c).length})).sort((a,b)=>b.v-a.v);
+      const mx=Math.max(...counts.map(c=>c.v),1);
+      return counts.map(c=>`<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;padding:2px 0">
+        <span class="mono" title="${c.n}" style="width:62px;flex-shrink:0;font-weight:600;color:${FAMC[c.f]}">${c.c}</span>
+        <span style="flex:1;background:#EDEBE4;border-radius:3px;height:10px;overflow:hidden"><span style="display:block;height:100%;width:${Math.max(2,100*c.v/mx)}%;background:${FAMC[c.f]}"></span></span>
+        <span class="mono" style="width:22px;text-align:right;color:var(--slate)">${c.v}</span></div>`).join('');})()}
+    </div></div>
+  <div class="grid3">
+    <div class="card"><div class="chd"><span>Attention queue</span><span class="mono" style="letter-spacing:0">${ALERTS.length} items</span></div>
+      <div>${ALERTS.slice(0,9).map(a=>`<div class="alert-row" onclick="location.hash='#/p/${a.p.code}'">
+        <span class="tag" style="color:${a.c};background:${a.bg}">${a.tag}</span>
+        <span><b style="color:var(--navy)">${a.p.code}</b> · ${esc(a.t)}</span></div>`).join('')}</div></div>
+    <div class="card"><div class="chd">Decision queue</div>
+      <div>${ready.slice(0,8).map(p=>`<div class="alert-row" onclick="location.hash='#/p/${p.code}'">
+        <span class="tag" style="color:var(--goldD);background:var(--goldBg)">G${Math.min(p.curPhase,4)}</span>
+        <span><b style="color:var(--navy)">${p.code}</b> — ${esc(p.name.length>52?p.name.slice(0,52)+'…':p.name)}<br><span style="color:var(--slate2);font-size:11px">${esc(p.sponsors.join(' · '))}</span></span></div>`).join('')||'<div class="cbd" style="color:var(--slate2)">No projects currently awaiting an authority.</div>'}</div></div>
+  </div>`;
+}
+function renderBoard(){
+  const cols=[0,1,2,3,4,5].map(ph=>({ph,items:PROJECTS.filter(p=>(p.status==='ACTIVE'||p.status==='HOLD')&&p.curPhase===ph||(ph===5&&p.status==='AT_SCALE'))}));
+  const term=PROJECTS.filter(p=>p.status==='SUNSET'||p.status==='DESCOPED');
+  const card=p=>`<div class="pcard" style="border-left-color:${p.status==='SUNSET'?'var(--red)':p.status==='DESCOPED'?'var(--slate2)':PH_COL[Math.min(p.status==='AT_SCALE'?5:p.curPhase,5)]}" onclick="location.hash='#/p/${p.code}'">
+    <div class="code">${p.code}${p.status==='HOLD'?' · <span style="color:var(--goldD)">HOLD</span>':''}</div>
+    <div class="nm">${esc(p.name)}</div>
+    <div class="mt"><span>${esc(p.sponsors[0].replace('DLA ',''))}</span><span class="mono">${$k(j68Spend(p))}</span></div></div>`;
+  document.getElementById('v-board').innerHTML=`
+  <h2 class="vt">Pipeline</h2><div class="vsub">Active portfolio by ESF phase — a card moves only by a recorded gate decision, never by drag.</div>
+  <div id="board">
+    ${cols.map(c=>`<div class="col"><div class="colh">
+      <div class="t" style="color:${PH_TXT[c.ph]}">${PH_SHORT[c.ph]}<span>${c.items.length}</span></div>
+      <div class="s">${$k(c.items.reduce((a,p)=>a+j68Spend(p),0))} J68 to date</div></div>
+      <div class="cards">${c.items.map(card).join('')||'<div style="padding:8px;font-size:11px;color:var(--slate2)">—</div>'}</div></div>`).join('')}
+    <div class="col"><div class="colh"><div class="t" style="color:var(--red)">Managed exits<span>${term.length}</span></div><div class="s">sunset + descoped</div></div>
+      <div class="cards">${term.slice(0,30).map(card).join('')}</div></div>
+  </div>`;
+}
+/* table view with filters */
+const FILT={q:'',phase:'',status:'',port:'',spon:'',vp:'',cls:''};
+let SORT={k:'code',dir:1};
+function applyFilters(){
+  return PROJECTS.filter(p=>{
+    if(FILT.q){const q=FILT.q.toLowerCase();if(!(p.name.toLowerCase().includes(q)||p.code.toLowerCase().includes(q)||p.nsn.some(n=>n.toLowerCase().includes(q))||p.tech.some(t=>t.toLowerCase().includes(q))))return false;}
+    if(FILT.phase!==''&&String(p.status==='AT_SCALE'?5:p.curPhase)!==FILT.phase)return false;
+    if(FILT.status&&p.status!==FILT.status)return false;
+    if(FILT.port&&p.portfolio!==FILT.port)return false;
+    if(FILT.spon&&!p.sponsors.includes(FILT.spon))return false;
+    if(FILT.vp&&!p.vps.some(v=>v.path===FILT.vp))return false;
+    if(FILT.cls&&!p.cls.includes(FILT.cls))return false;
+    return true;});
+}
+function setF(k,v){FILT[k]=v;renderList();}
+function setSort(k){SORT=SORT.k===k?{k,dir:-SORT.dir}:{k,dir:1};renderList();}
+function renderList(){
+  const rows=applyFilters().slice().sort((a,b)=>{
+    const key=p=>SORT.k==='spend'?j68Spend(p):SORT.k==='entry'?p.entry:SORT.k==='vp'?p.vp:p.code;
+    const va=key(a), vb=key(b);
+    return (va>vb?1:va<vb?-1:0)*SORT.dir;});
+  const opt=(arr,cur)=>arr.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('');
+  document.getElementById('v-list').innerHTML=`
+  <h2 class="vt">Projects</h2><div class="vsub">Every project of record — filter by phase, sponsor, portfolio, value path, class of supply, or search names, codes, technologies, and NSNs.</div>
+  <div class="fbar">
+    <input type="search" placeholder="Search name, code, NSN, technology…" value="${esc(FILT.q)}" oninput="setF('q',this.value)">
+    <select onchange="setF('phase',this.value)"><option value="">Phase: all</option>${[0,1,2,3,4,5].map(i=>`<option value="${i}" ${FILT.phase===String(i)?'selected':''}>${PH_SHORT[i]}</option>`).join('')}</select>
+    <select onchange="setF('status',this.value)"><option value="">Status: all</option>${opt(['ACTIVE','HOLD','AT_SCALE','SUNSET','DESCOPED'],FILT.status)}</select>
+    <select onchange="setF('port',this.value)"><option value="">Program: all</option>${['LogTech','ManTech','SBIP'].map(f=>`<optgroup label="${f}">${PROG.filter(x=>x.f===f).map(x=>`<option value="${x.c}" ${FILT.port===x.c?'selected':''}>${x.c} — ${x.n.length>34?x.n.slice(0,34)+'…':x.n}</option>`).join('')}</optgroup>`).join('')}</select>
+    <select onchange="setF('spon',this.value)"><option value="">Sponsor: all</option>${opt(SPONSORS,FILT.spon)}</select>
+    <select onchange="setF('vp',this.value)"><option value="">Value path: all</option>${opt(Object.keys(VP),FILT.vp)}</select>
+    <select onchange="setF('cls',this.value)"><option value="">Class: all</option>${opt(CLASSES,FILT.cls)}</select>
+    <button onclick="Object.keys(FILT).forEach(k=>FILT[k]='');renderList()">Clear</button>
+    <span class="cnt">${rows.length} / ${PROJECTS.length}</span>
+  </div>
+  <div style="overflow-x:auto"><table class="list"><thead><tr>
+    <th onclick="setSort('code')">Code ${SORT.k==='code'?(SORT.dir>0?'▲':'▼'):''}</th><th>Project</th><th>Phase</th><th>Sponsor(s)</th><th>Program</th><th onclick="setSort('vp')">Value path ${SORT.k==='vp'?(SORT.dir>0?'▲':'▼'):''}</th><th onclick="setSort('spend')">J68 to date ${SORT.k==='spend'?(SORT.dir>0?'▲':'▼'):''}</th><th onclick="setSort('entry')">Entered ${SORT.k==='entry'?(SORT.dir>0?'▲':'▼'):''}</th>
+  </tr></thead><tbody>
+  ${rows.map(p=>`<tr onclick="location.hash='#/p/${p.code}'">
+    <td class="mono" style="font-weight:700;color:var(--goldD)">${p.code}</td>
+    <td style="font-weight:600;color:var(--navy);max-width:330px">${esc(p.name)}</td>
+    <td>${phaseChip(p)}</td>
+    <td style="font-size:11.5px;color:var(--slate)">${esc(p.sponsors.map(s=>s.replace('DLA ','')).join(' · '))}</td>
+    <td><span class="chip" title="${PROGMAP[p.portfolio].n} (${PROGMAP[p.portfolio].f})" style="background:${FAMC[PROGMAP[p.portfolio].f]}12;color:${FAMC[PROGMAP[p.portfolio].f]}">${p.portfolio}</span></td>
+    <td>${p.vps.map(v=>`<span class="chip" title="${v.primary?'Primary':'Secondary'} value path" style="background:${VP[v.path].c}12;color:${VP[v.path].c};font-size:10.5px;margin:1px 2px 1px 0">${VP[v.path].l}${v.primary&&p.vps.length>1?' ●':''}</span>`).join('')}</td>
+    <td class="money">${$k(j68Spend(p))}</td>
+    <td class="mono" style="font-size:11px;color:var(--slate)">${fmtMY(p.entry)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+</script>
+<script>
+function renderRecord(code){
+  const p=byCode(code);const el=document.getElementById('v-rec');
+  if(!p){el.innerHTML='<p>Not found. <a href="#/projects">Back to projects</a></p>';return;}
+  const g=Math.min(p.curPhase,4);
+  const met=p.crits?p.crits.filter(c=>c.status==='MET').length:null;
+  const fundByFY={};p.fund.forEach(f=>{fundByFY[f.fy]=fundByFY[f.fy]||{a:0,b:0};f.src==='J68 R&D'?fundByFY[f.fy].a+=f.amt:fundByFY[f.fy].b+=f.amt;});
+  const fyRows=Object.keys(fundByFY).sort().map(k=>({l:k,...fundByFY[k]}));
+  const ada=p.fund.some(f=>f.ada);
+  el.innerHTML=`
+  <a class="bk" href="#/projects">← Projects</a>
+  <div class="rhead">
+    <div>
+      <div class="code">${p.code} · ${PROGMAP[p.portfolio].n} (${p.portfolio} — ${PROGMAP[p.portfolio].f}) · entered ${fmtMY(p.entry)}</div>
+      <h2>${esc(p.name)}</h2>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">
+        ${phaseChip(p)}
+        ${p.sponsors.map(s=>`<span class="chip" style="background:var(--sponBg);color:var(--spon)">${esc(s)}</span>`).join('')}
+        ${p.vps.map(v=>`<button class="chip" onclick="document.getElementById('vcase').scrollIntoView({behavior:'smooth'})" title="View value case" style="border:1px solid ${VP[v.path].c}55;background:${VP[v.path].c}14;color:${VP[v.path].c};cursor:pointer">${VP[v.path].l}${v.primary&&p.vps.length>1?' · primary':''} ↓</button>`).join('')}
+        ${p.cls.map(c=>`<span class="chip" style="background:#EDEBE4;color:var(--slate)">Class ${c}</span>`).join('')}
+      </div>
+    </div>
+    <div style="text-align:right">
+      ${locator(p,250)}
+      <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="location.hash='#/brief/${p.code}'">Generate decision brief</button>
+      </div>
+    </div>
+  </div>
+  ${p.sunset?`<div class="banner" style="background:var(--redBg);border-color:#E0BDC3;color:#6D3A42"><b style="color:var(--red)">Managed exit at Gate ${p.sunset.gate}.</b> ${esc(p.sunset.reason)}. Credited to the portfolio per the ESF — recorded, not hidden.</div>`:''}
+  ${ada?`<div class="banner" style="background:var(--redBg);border-color:#E0BDC3;color:#6D3A42"><b style="color:var(--red)">ADA exposure flag.</b> A J68 RDT&E funding record has a period of performance extending beyond Gate 4. Surface to J8/J7.</div>`:''}
+  <div class="rgrid">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${(p.status==='ACTIVE'||p.status==='HOLD')?`<div class="card"><div class="chd"><span>Gate ${g} scorecard — ${met}/5 met</span><span class="mono" style="letter-spacing:0">${decisionReady(p)?'<b style=color:var(--spon)>READY FOR AUTHORITY</b>':'IN WORK'}</span></div>
+      <div class="cbd">${p.crits.map((c,i)=>`<div class="crit ${c.hard?'hard':''}">
+        <span class="st" style="${c.status==='MET'?'background:var(--sponBg);color:var(--spon)':'background:var(--goldBg);color:var(--goldD)'}">${c.status}</span>
+        <span class="tx"><b>${i+1}. ${esc(c.t)}${c.hard?'<span class="hardtag">NON-WAIVABLE</span>':''}</b>${c.status==='MET'?'Evidence on file in gate package.':'Awaiting evidence or signature.'}</span></div>`).join('')}</div></div>`:''}
+      <div class="card" id="vcase"><div class="chd"><span>Value case — why this creates ROI for DLA</span><span class="mono" style="letter-spacing:0">${p.roiCertified?'<b style=color:var(--spon)>J8-CERTIFIED (G2)</b>':'PM ESTIMATE — J8 CERT AT G2'}</span></div>
+      <div class="cbd" style="display:flex;flex-direction:column;gap:12px">
+        ${p.vps.map(v=>`<div style="border:1px solid ${VP[v.path].c}33;border-left:4px solid ${VP[v.path].c};border-radius:7px;padding:11px 14px">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <b style="color:${VP[v.path].c};font-size:13px">${VP[v.path].l}${p.vps.length>1?(v.primary?' — primary path':' — secondary path'):''}</b>
+            <span class="mono" style="font-size:11px;font-weight:600;color:var(--navy)">${$k(v.annual)}/yr</span></div>
+          <div style="font-size:12.5px;color:var(--ink);line-height:1.5;margin:6px 0 8px">${esc(v.arg)}</div>
+          <table class="gh-tbl"><thead><tr><th>MEASURE</th><th>BASELINE (STAGE 0)</th><th>PROJECTED</th><th>EST. ANNUAL VALUE</th></tr></thead>
+          <tbody><tr><td>${esc(v.metric)}</td><td>${esc(v.base)}</td><td style="font-weight:600;color:${VP[v.path].c}">${esc(v.proj)}</td><td class="money">${$k(v.annual)}</td></tr></tbody></table></div>`).join('')}
+        <div style="font-size:12px;color:var(--slate);border-top:1px solid var(--line);padding-top:9px">
+          <b style="color:var(--navy)">ROI estimate: ${p.roi.toFixed(1)} : 1</b> over five years against ${$k(p.rom)} ROM lifecycle cost · ${p.roiCertified?'certified in writing by J8 Finance at Gate 2 (artifact on file)':'PM estimate; J8 written certification is a non-waivable Gate 2 criterion'}.</div>
+      </div></div>
+      <div class="card"><div class="chd">Gate history & artifacts of record</div><div class="cbd">
+        <table class="gh-tbl"><thead><tr><th>GATE</th><th>DATE</th><th>OUTCOME</th><th>ARTIFACT</th></tr></thead><tbody>
+        ${p.gates.map(gd=>{const a=p.arts.find(x=>Math.abs(x.date-gd.date)<32*864e5)||p.arts[gd.gate];return `<tr>
+          <td class="mono" style="font-weight:700;color:${gd.outcome==='PASS'?'var(--navy)':'var(--red)'}">G${gd.gate}</td>
+          <td class="mono" style="font-size:11px">${fmt(gd.date)}</td>
+          <td><span class="chip" style="background:${gd.outcome==='PASS'?'var(--sponBg)':'var(--redBg)'};color:${gd.outcome==='PASS'?'var(--spon)':'var(--red)'}">${gd.outcome}</span></td>
+          <td style="color:var(--slate)">${a?esc(a.title):'—'}</td></tr>`}).join('')||'<tr><td colspan="4" style="color:var(--slate2)">No gate decisions yet — Stage 0 in work.</td></tr>'}
+        </tbody></table></div></div>
+      <div class="card"><div class="chd"><span>Funding — the handoff on this project</span><span><span class="chip" style="background:var(--j68Bg);color:var(--j68D)">J68</span> <span class="chip" style="background:var(--sponBg);color:var(--spon)">Sponsor</span></span></div>
+        <div class="cbd">${fyRows.length?stackChartSVG(fyRows,{h:170}):'<span style="color:var(--slate2)">No funding obligated (Stage 0 — staff time only).</span>'}
+        <table class="gh-tbl" style="margin-top:8px"><thead><tr><th>FY</th><th>APPROPRIATION</th><th>SOURCE</th><th>AMOUNT</th><th>PoP END</th></tr></thead><tbody>
+        ${p.fund.map(f=>`<tr><td class="mono">FY${String(f.fy).slice(2)}</td><td>${f.app}</td><td style="color:${f.src==='J68 R&D'?'var(--j68D)':'var(--spon)'}">${f.src}</td><td class="money">${$k(f.amt)}</td><td class="mono" style="font-size:11px;color:${f.ada?'var(--red)':'var(--slate2)'}">${f.pop?fmt(f.pop)+(f.ada?' ⚠':''):'—'}</td></tr>`).join('')}
+        </tbody></table></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><div class="chd">Record</div><div class="cbd"><dl class="kv">
+        <dt>Problem</dt><dd>${esc(p.problem)}</dd>
+        <dt>J68 PM</dt><dd>${esc(p.pm)}</dd>
+        <dt>SES co-sponsor</dt><dd>${esc(p.ses)}</dd>
+        <dt>Technology</dt><dd>${p.tech.join(', ')}</dd>
+        <dt>NSN</dt><dd>${p.nsn.join(', ')||'—'}</dd>
+        <dt>ROM</dt><dd class="mono">${$k(p.rom)}</dd>
+        <dt>Time in phase</dt><dd>${monthsInPhase(p)!==null?monthsInPhase(p)+' months (design '+DESIGN_MONTHS[Math.min(p.curPhase,5)][0]+'–'+DESIGN_MONTHS[Math.min(p.curPhase,5)][1]+')':'—'}</dd>
+        ${p.sites?`<dt>Deployments</dt><dd>${p.sites} sites · ${p.users} operational users</dd>`:''}
+      </dl></div></div>
+      <div class="card"><div class="chd">Transition pathway${p.paths.length>1?'s':''}</div><div class="cbd" style="display:flex;flex-direction:column;gap:10px">
+        ${p.paths.map(x=>`<div style="border:1px solid var(--line);border-radius:7px;padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;gap:8px"><b style="color:var(--navy);font-size:12.5px">Path ${x.path}</b>
+          <span class="chip" style="background:${x.status==='ACTIVE'?'var(--sponBg)':x.status==='COMMITTED'?'var(--goldBg)':'#EDEBE4'};color:${x.status==='ACTIVE'?'var(--spon)':x.status==='COMMITTED'?'var(--goldD)':'var(--slate)'}">${x.status}</span></div>
+          <div style="font-size:12px;color:var(--slate);margin-top:4px">${esc(x.mech)}</div>
+          <div class="mono" style="font-size:10px;color:var(--slate2);margin-top:5px">${x.committed?'committed '+x.committed+' · ':''}${x.clock}</div></div>`).join('')}
+        <div style="font-size:11px;color:var(--slate2)">Committed declarations are locked per lifecycle rule R6.</div></div></div>
+      <div class="card"><div class="chd">Timeline</div><div class="cbd"><ul class="tl">
+        ${[{d:p.entry,t:'Entered ESF (Stage 0 intake)'},...p.gates.map(g=>({d:g.date,t:'Gate '+g.gate+' — '+g.outcome})),...p.arts.map(a=>({d:a.date,t:a.title}))].sort((a,b)=>a.d-b.d).map(e=>`<li><span class="d">${fmt(e.d)}</span><span>${esc(e.t)}</span></li>`).join('')}
+      </ul></div></div>
+    </div>
+  </div>`;
+}
+function renderBrief(code){
+  const p=byCode(code);const el=document.getElementById('v-brief');
+  if(!p){el.innerHTML='<p style="padding:30px">Not found.</p>';return;}
+  const g=Math.min(p.curPhase,4);
+  const pend=p.crits?p.crits.filter(c=>c.status==='PENDING'):[];
+  const ready=decisionReady(p);
+  el.innerHTML=`
+  <div class="mark">PRE-DECISIONAL // DELIBERATIVE // DRAFT — INTERNAL DLA USE ONLY · SYNTHETIC PROTOTYPE</div>
+  <div class="bf-pad">
+    <div id="bf-actions" style="display:flex;gap:8px;justify-content:flex-end;padding:14px 0 0">
+      <a class="bk" href="#/p/${p.code}" style="margin-right:auto;padding-top:8px">← Back to record</a>
+      <button class="btn ghost" onclick="window.print()">Print / PDF</button>
+    </div>
+    <div style="border-bottom:2px solid var(--navy);padding:18px 0 14px;margin-bottom:4px">
+      <div class="mono" style="font-size:10px;letter-spacing:.2em;color:var(--goldD)">DEFENSE LOGISTICS AGENCY · J68 R&D DIVISION · ESF DECISION BRIEF (AUTO-GENERATED FROM ESH)</div>
+      <div style="font-family:var(--serif);font-size:26px;font-weight:700;color:var(--navy);margin-top:6px">${esc(p.name)}</div>
+      <div style="font-size:13px;color:var(--slate);margin-top:4px"><b>${p.code}</b> · ${PROGMAP[p.portfolio].n} (${p.portfolio}) · Gate ${g} Decision Brief · Decision authority: Deputy Commanding General · ${fmt(NOW)}</div>
+    </div>
+    <div class="bf-sec">Purpose & bottom line</div>
+    <div class="bf-box"><b>PURPOSE.</b> Obtain decision on Gate ${g} for ${p.code} under the Enterprise Scaling Framework.
+      <b>BOTTOM LINE.</b> ${p.gates.filter(x=>x.outcome==='PASS').length?'Gates '+p.gates.filter(x=>x.outcome==='PASS').map(x=>'G'+x.gate).join(', ')+' passed with artifacts of record. ':''}
+      ${p.crits?`${p.crits.filter(c=>c.status==='MET').length} of 5 Gate ${g} criteria are MET. ${pend.length?'Pending: '+pend.map(c=>c.t).join('; ')+'.':''} ${ready?'<b>All remaining items are signature actions — this is the decision.</b>':''}`:''}
+      J68 investment to date: <b class="mono">${$k(j68Spend(p))}</b>.</div>
+    <div class="bf-sec">Value case — declared path${p.vps.length>1?'s':''} (Gate 0)</div>
+    ${p.vps.map(v=>`<div style="font-size:13px;margin-bottom:7px"><b style="color:${VP[v.path].c}">${VP[v.path].l}${p.vps.length>1?(v.primary?' (primary)':' (secondary)'):''}.</b> ${esc(v.arg)} <span class="mono" style="font-size:11px">[${esc(v.metric)}: ${esc(v.base)} → ${esc(v.proj)}]</span></div>`).join('')}
+    <div style="font-size:12.5px;color:var(--slate);margin-bottom:2px"><b>ROI ${p.roi.toFixed(1)} : 1</b> over five years vs. ${$k(p.rom)} ROM — ${p.roiCertified?'J8-certified in writing (Gate 2 artifact of record)':'PM estimate; J8 certification due at Gate 2'}.</div>
+    <div class="bf-sec">ESF status — standard locator</div>
+    <div style="padding:6px 0 2px">${locator(p,640)}</div>
+    <div class="mono" style="font-size:10px;color:var(--slate2)">${PH_SHORT.map((s,i)=>s).join(' · ')}</div>
+    <div class="bf-sec">Gate history and evidence of record</div>
+    <table class="gh-tbl"><thead><tr><th>GATE</th><th>DATE</th><th>OUTCOME</th><th>EVIDENCE OF RECORD</th></tr></thead><tbody>
+      ${p.gates.map(gd=>{const a=p.arts[gd.gate];return `<tr><td class="mono" style="font-weight:700">G${gd.gate}</td><td class="mono">${fmt(gd.date)}</td><td>${gd.outcome}</td><td>${a?esc(a.title):'—'}</td></tr>`}).join('')}
+    </tbody></table>
+    ${p.crits?`<div class="bf-sec">Gate ${g} criteria status</div>
+    ${p.crits.map((c,i)=>`<div class="crit ${c.hard?'hard':''}" style="border:1px solid ${c.hard?'#E4D3A6':'var(--line)'};margin-top:5px">
+      <span class="st" style="${c.status==='MET'?'background:var(--sponBg);color:var(--spon)':'background:var(--goldBg);color:var(--goldD)'}">${c.status}</span>
+      <span class="tx"><b>${i+1}. ${esc(c.t)}${c.hard?'<span class="hardtag">NON-WAIVABLE</span>':''}</b></span></div>`).join('')}`:''}
+    <div class="bf-sec">Funding summary</div>
+    <table class="gh-tbl"><thead><tr><th>FY</th><th>APPROPRIATION</th><th>SOURCE</th><th>AMOUNT</th></tr></thead><tbody>
+      ${p.fund.map(f=>`<tr><td class="mono">FY${String(f.fy).slice(2)}</td><td>${f.app}</td><td>${f.src}</td><td class="money">${$k(f.amt)}</td></tr>`).join('')||'<tr><td colspan=4>None obligated.</td></tr>'}
+    </tbody></table>
+    <div class="bf-sec">Transition pathway${p.paths.length>1?'s':''}</div>
+    ${p.paths.map(x=>`<div style="font-size:13px;margin-bottom:4px"><b>Path ${x.path}.</b> ${esc(x.mech)} — <i>${x.status}</i>${x.committed?', committed '+x.committed:''}.</div>`).join('')}
+    ${(p.status==='ACTIVE'||p.status==='HOLD')&&g===3?`
+    <div class="bf-sec">Commitment instrument — signatures required</div>
+    <div style="font-size:12.5px;color:var(--slate);margin-bottom:6px"><i>"We plan to commit" is not Gate 3 passage. Both signatures are SES/GOFO and non-delegable (lifecycle rule R5).</i></div>
+    <div class="sigrow">
+      <div class="sig"><b style="font-size:12px;color:var(--goldD)">J68 R&D DIVISION</b><div class="ln"></div><small>Signature — SES/GOFO · non-delegable · Date</small></div>
+      <div class="sig"><b style="font-size:12px;color:var(--goldD)">SPONSOR — ${esc(p.sponsors.join(' / ').toUpperCase())}</b><div class="ln"></div><small>Signature — SES/GOFO · non-delegable · Date</small></div>
+    </div>`:''}
+    <div style="margin-top:22px;font-size:10.5px;color:var(--slate2);font-style:italic">Generated by ESH from the project record — every line above traces to a field in the data model. Synthetic prototype data.</div>
+  </div>`;
+}
+/* ============ router ============ */
+function route(){
+  const h=location.hash.replace(/^#\/?/,'');
+  const views=['v-dash','v-board','v-list','v-rec','v-brief'];
+  views.forEach(v=>document.getElementById(v).classList.add('hide'));
+  let key='dash';
+  if(h==='board'){key='board';renderBoard();document.getElementById('v-board').classList.remove('hide');}
+  else if(h==='projects'){key='list';renderList();document.getElementById('v-list').classList.remove('hide');}
+  else if(h.startsWith('p/')){key='';renderRecord(h.slice(2));document.getElementById('v-rec').classList.remove('hide');}
+  else if(h.startsWith('brief/')){key='';renderBrief(h.slice(6));document.getElementById('v-brief').classList.remove('hide');}
+  else{renderDash();document.getElementById('v-dash').classList.remove('hide');}
+  document.querySelectorAll('#top nav a').forEach(a=>a.classList.toggle('on',a.dataset.r===key));
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+route();
+</script>
+</body>
+</html>
