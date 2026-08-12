@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FY27 ESF Program Build — WBS, Pricing & FAQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FCFCFA; --panel:#FFFFFF; --ink:#20283A; --slate:#5A6474; --faint:#8B93A3;
+  --red:#C00000; --navy:#20283A; --hair:#E4E2DC; --tint:#F4F3EF;
+  --t1:#EEF1F8; --t2:#F2EFE8; --t3:#EDF1EE; --t4:#F5EDE7;
+  --t1a:#3D5A99; --t2a:#8A6D3B; --t3a:#4A7A5A; --t4a:#A0522D;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Raleway',sans-serif;background:var(--paper);color:var(--ink);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font-family:inherit;cursor:pointer}
+.num{font-variant-numeric:tabular-nums lining-nums}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.rail{border-right:1px solid var(--hair);padding:2.2rem 1.4rem;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:var(--panel)}
+.brand{font-weight:800;font-size:1.02rem;letter-spacing:-.01em;line-height:1.25}
+.brand span{color:var(--red)}
+.brand-sub{font-size:.68rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:.45rem}
+nav{margin-top:2.4rem;display:flex;flex-direction:column;gap:.15rem}
+nav a{display:block;padding:.55rem .7rem;border-radius:6px;text-decoration:none;font-weight:600;font-size:.86rem;color:var(--slate);border-left:3px solid transparent}
+nav a:hover{background:var(--tint);color:var(--ink)}
+nav a.active{color:var(--red);border-left-color:var(--red);background:var(--tint)}
+.rail-foot{margin-top:auto;font-size:.68rem;color:var(--faint);line-height:1.6}
+.rail-foot b{color:var(--slate)}
+main{padding:2.6rem 3.2rem 5rem;max-width:1080px}
+.view{display:none}
+.view.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.view.on{animation:none}}
+
+/* ---------- typography ---------- */
+.kicker{font-size:.7rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--red)}
+h1{font-weight:800;font-size:2.15rem;letter-spacing:-.025em;line-height:1.12;margin:.4rem 0 .6rem}
+.lede{color:var(--slate);max-width:56ch;font-size:.98rem}
+h2{font-weight:800;font-size:1.15rem;letter-spacing:-.01em;margin:2.6rem 0 .9rem}
+h2 small{font-weight:600;color:var(--faint);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.6rem}
+
+/* ---------- headline figures ---------- */
+.figures{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--navy);border-bottom:1px solid var(--hair);margin-top:2.2rem}
+.fig{padding:1.15rem 1rem 1.05rem;border-right:1px solid var(--hair)}
+.fig:last-child{border-right:none}
+.fig .v{font-weight:800;font-size:1.65rem;letter-spacing:-.02em}
+.fig .l{font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-top:.15rem}
+
+/* ---------- share bar ---------- */
+.sharebar{display:flex;height:38px;border-radius:6px;overflow:hidden;margin-top:1rem}
+.sharebar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.03em;min-width:0}
+.legend{display:flex;flex-wrap:wrap;gap:1.1rem;margin-top:.7rem;font-size:.76rem;color:var(--slate)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:.4rem;vertical-align:-1px}
+
+/* ---------- month strip (signature) ---------- */
+.strip{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;width:150px;flex:none}
+.strip i{height:9px;border-radius:2px;background:var(--hair)}
+.strip i.on{background:var(--cell,#3D5A99)}
+.striplbl{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;width:150px;font-size:.5rem;color:var(--faint);letter-spacing:.02em;text-align:center}
+
+/* ---------- task cards ---------- */
+.taskcard{border:1px solid var(--hair);border-radius:10px;background:var(--panel);margin-bottom:1rem;overflow:hidden}
+.taskhead{display:flex;align-items:center;gap:1.1rem;padding:1.05rem 1.3rem;width:100%;background:none;border:none;text-align:left}
+.taskhead:hover{background:var(--tint)}
+.tno{font-weight:800;font-size:1.5rem;letter-spacing:-.02em;width:1.5ch;color:var(--acc)}
+.tmeta{flex:1;min-width:0}
+.tname{font-weight:700;font-size:1.02rem}
+.tdesc{font-size:.8rem;color:var(--slate);margin-top:.1rem}
+.tfigs{text-align:right;flex:none}
+.tfigs .c{font-weight:800;font-size:1.05rem}
+.tfigs .h{font-size:.72rem;color:var(--faint)}
+.chev{flex:none;color:var(--faint);transition:transform .2s}
+.taskcard.open .chev{transform:rotate(90deg)}
+.subwrap{display:none;border-top:1px solid var(--hair)}
+.taskcard.open .subwrap{display:block}
+.sub{display:flex;align-items:center;gap:1rem;padding:.85rem 1.3rem;border-bottom:1px solid var(--hair);width:100%;background:none;border-left:none;border-right:none;border-top:none;text-align:left}
+.sub:last-child{border-bottom:none}
+.sub:hover{background:var(--tint)}
+.swbs{font-weight:700;font-size:.82rem;color:var(--acc);width:2.6ch;flex:none}
+.smeta{flex:1;min-width:0}
+.sname{font-weight:600;font-size:.88rem}
+.sdesc{font-size:.75rem;color:var(--slate)}
+.sfigs{text-align:right;flex:none;width:92px}
+.sfigs .c{font-weight:700;font-size:.88rem}
+.sfigs .h{font-size:.68rem;color:var(--faint)}
+
+/* ---------- detail panel ---------- */
+.detail{position:fixed;inset:0;background:rgba(32,40,58,.42);display:none;align-items:flex-start;justify-content:center;padding:4vh 1rem;z-index:50;overflow:auto}
+.detail.on{display:flex}
+.sheet{background:var(--panel);border-radius:14px;max-width:720px;width:100%;padding:2rem 2.2rem;box-shadow:0 24px 60px rgba(32,40,58,.25)}
+.sheet .kicker{color:var(--acc)}
+.sheet h3{font-weight:800;font-size:1.35rem;letter-spacing:-.02em;margin:.3rem 0 .3rem}
+.sheet .lede{font-size:.9rem}
+.close{float:right;background:var(--tint);border:none;border-radius:6px;padding:.35rem .7rem;font-weight:700;font-size:.8rem;color:var(--slate)}
+.close:hover{background:var(--hair)}
+.dtable{width:100%;border-collapse:collapse;margin-top:1.3rem;font-size:.83rem}
+.dtable th{font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);text-align:left;padding:.4rem .5rem;border-bottom:2px solid var(--ink)}
+.dtable th.r,.dtable td.r{text-align:right}
+.dtable td{padding:.5rem;border-bottom:1px solid var(--hair)}
+.dtable tr.tot td{font-weight:800;border-bottom:none;border-top:2px solid var(--ink)}
+.resbar{height:9px;border-radius:3px;background:var(--hair);overflow:hidden;margin-top:.2rem}
+.resbar i{display:block;height:100%;background:var(--acc)}
+.mgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:.6rem}
+.mg{background:var(--tint);border-radius:5px;padding:.4rem .1rem;text-align:center}
+.mg.on{background:var(--accsoft)}
+.mg .mm{font-size:.55rem;font-weight:700;letter-spacing:.06em;color:var(--faint)}
+.mg .mv{font-size:.72rem;font-weight:700;margin-top:.1rem}
+
+/* ---------- pricing ---------- */
+.tabs{display:inline-flex;border:1px solid var(--hair);border-radius:8px;overflow:hidden;margin:1.4rem 0 1.6rem}
+.tabs button{padding:.5rem 1.15rem;background:var(--panel);border:none;font-weight:700;font-size:.82rem;color:var(--slate);border-right:1px solid var(--hair)}
+.tabs button:last-child{border-right:none}
+.tabs button.on{background:var(--navy);color:#fff}
+.ptab{display:none}.ptab.on{display:block}
+.rowbar{display:flex;align-items:center;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--hair)}
+.rowbar .lab{width:230px;flex:none;font-weight:600;font-size:.86rem}
+.rowbar .lab small{display:block;font-weight:500;color:var(--faint);font-size:.7rem}
+.rowbar .bar{flex:1;height:20px;border-radius:4px;background:var(--tint);overflow:hidden}
+.rowbar .bar i{display:block;height:100%;border-radius:4px}
+.rowbar .val{width:110px;text-align:right;font-weight:700;font-size:.88rem;flex:none}
+.rowbar .val small{display:block;font-weight:500;color:var(--faint);font-size:.68rem}
+.note{font-size:.78rem;color:var(--slate);margin-top:1rem;max-width:64ch}
+.note b{color:var(--ink)}
+
+/* ---------- FAQ ---------- */
+.faqgrp{margin-top:2rem}
+.faqgrp h3{font-weight:800;font-size:.95rem;letter-spacing:.02em}
+.faqgrp .who{font-size:.76rem;color:var(--slate);margin:.15rem 0 .8rem}
+.q{border:1px solid var(--hair);border-radius:8px;background:var(--panel);margin-bottom:.5rem;overflow:hidden}
+.qh{display:flex;gap:.8rem;align-items:baseline;width:100%;padding:.75rem 1rem;background:none;border:none;text-align:left}
+.qh:hover{background:var(--tint)}
+.qh .n{font-weight:800;font-size:.75rem;color:var(--red);flex:none;width:2.2ch}
+.qh .t{font-weight:600;font-size:.88rem;flex:1}
+.qh .flag{flex:none;font-size:.62rem;font-weight:700;letter-spacing:.08em;color:#8A6D3B;background:#F5EDDF;border-radius:4px;padding:.15rem .45rem;text-transform:uppercase}
+.qa{display:none;padding:0 1rem .9rem 3rem;font-size:.84rem;color:var(--slate)}
+.q.open .qa{display:block}
+.search{width:100%;max-width:420px;padding:.6rem .9rem;border:1px solid var(--hair);border-radius:8px;font-family:inherit;font-size:.88rem;margin-top:1.2rem;background:var(--panel)}
+.search:focus{outline:2px solid var(--navy);outline-offset:1px}
+
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+/* ---------- mobile ---------- */
+@media(max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:static;height:auto;flex-direction:row;align-items:center;gap:1rem;padding:1rem 1.2rem;border-right:none;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+  nav{margin-top:0;flex-direction:row;flex-wrap:wrap}
+  .rail-foot{display:none}
+  main{padding:1.6rem 1.2rem 4rem}
+  .figures{grid-template-columns:repeat(2,1fr)}
+  .fig:nth-child(2){border-right:none}
+  .rowbar .lab{width:130px}
+  .sheet{padding:1.4rem}
+  .mgrid{grid-template-columns:repeat(6,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div>
+      <div class="brand">FY27 ESF<span>.</span> Program Build</div>
+      <div class="brand-sub">WBS · Pricing · FAQ</div>
+    </div>
+    <nav id="nav">
+      <a href="#overview" class="active" data-v="overview">Overview</a>
+      <a href="#tasks" data-v="tasks">Tasks &amp; Sub-tasks</a>
+      <a href="#pricing" data-v="pricing">Pricing Explorer</a>
+      <a href="#faq" data-v="faq">50 Questions</a>
+    </nav>
+    <div class="rail-foot">
+      <b>Pre-decisional.</b><br>Labor only · portfolio rate card · no uplift, ODC, or fee.<br><br>Oct 2026 – Sep 2027
+    </div>
+  </aside>
+
+  <main>
+    <!-- ================= OVERVIEW ================= -->
+    <section class="view on" id="v-overview">
+      <div class="kicker">Operationalizing the Enterprise Scaling Framework</div>
+      <h1>One requirement, four tasks,<br>twelve months.</h1>
+      <p class="lede">The FY27 program moves R&amp;D pilots across Gate&nbsp;4, drives enterprise adoption, and stands up a futures intake — priced bottom-up from a 17-sub-task work breakdown structure, resources by month.</p>
+
+      <div class="figures num" id="figures"></div>
+
+      <h2>Cost by task</h2>
+      <div class="sharebar num" id="sharebar"></div>
+      <div class="legend" id="sharelegend"></div>
+
+      <h2>The year at a glance <small>hours scheduled per month</small></h2>
+      <div id="yearbars"></div>
+      <p class="note">Q3 peaks with the <b>Annual Transition Assessment &amp; Calibration</b> (Apr–Jun): a ~35-interview enterprise assessment culminating in a working-level calibration forum, after-action report, and executive summary.</p>
+    </section>
+
+    <!-- ================= TASKS ================= -->
+    <section class="view" id="v-tasks">
+      <div class="kicker">Work breakdown structure</div>
+      <h1>Tasks &amp; sub-tasks</h1>
+      <p class="lede">Four functional tasks decompose into seventeen sub-tasks. Open a task, then open any sub-task to see its resource loading and month-by-month schedule.</p>
+      <div id="tasklist" style="margin-top:2rem"></div>
+    </section>
+
+    <!-- ================= PRICING ================= -->
+    <section class="view" id="v-pricing">
+      <div class="kicker">Pricing explorer</div>
+      <h1>Where the money goes</h1>
+      <p class="lede">The same $3.04M build, three ways: by task, by resource tier, and by month. Every figure derives from the sub-task-level WBS.</p>
+      <div class="tabs" role="tablist">
+        <button class="on" data-p="task">By task</button>
+        <button data-p="resource">By resource</button>
+        <button data-p="month">By month</button>
+      </div>
+      <div class="ptab on" id="p-task"></div>
+      <div class="ptab" id="p-resource"></div>
+      <div class="ptab" id="p-month"></div>
+    </section>
+
+    <!-- ================= FAQ ================= -->
+    <section class="view" id="v-faq">
+      <div class="kicker">Anticipated scrutiny</div>
+      <h1>Fifty questions this build should survive</h1>
+      <p class="lede">The questions a client asks about <em>value</em>, a contracting officer asks about <em>basis</em>, and a CEO asks about <em>feasibility</em> — with the build's known soft spots flagged.</p>
+      <input class="search" id="faqsearch" type="search" placeholder="Filter questions…" aria-label="Filter questions">
+      <div id="faqlist"></div>
+    </section>
+  </main>
+</div>
+
+<!-- detail sheet -->
+<div class="detail" id="detail" role="dialog" aria-modal="true">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+/* ================= DATA — from the FY27 WBS Master ================= */
+const RATES = {SRA:291.54, "MAN/ASSOC":186.73, RA:155.62, Graphics:186.73};
+const MONTHS = ["Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"];
+const ALL=[...Array(12).keys()], OctMar=[0,1,2,3,4,5], DecSep=[2,3,4,5,6,7,8,9,10,11],
+      AprSep=[6,7,8,9,10,11], OctMay=[0,1,2,3,4,5,6,7], JanSep=[3,4,5,6,7,8,9,10,11],
+      OctDec=[0,1,2], AprJun=[6,7,8];
+
+const TASKS = [
+ {id:"T1", name:"ESF Transition Support", acc:"var(--t1a)", tint:"var(--t1)",
+  blurb:"Sign the commitment: governance instruments, sponsors, and the senior messaging that gets them signed."},
+ {id:"T2", name:"ESF Scaling Support", acc:"var(--t2a)", tint:"var(--t2)",
+  blurb:"Move projects through the gates: packages, Gates 1–3, the PPBE funding path, and measurement."},
+ {id:"T3", name:"ESF Change Management Support", acc:"var(--t3a)", tint:"var(--t3)",
+  blurb:"Drive enterprise adoption, in a standing partnership with DLA J1."},
+ {id:"T4", name:"Ad hoc Strategic Support", acc:"var(--t4a)", tint:"var(--t4)",
+  blurb:"A governed reserve for emergent tasking — and the FOS–ESF Futures interface."}
+];
+
+const SUBS = [
+ {t:"T1",w:"1.1",n:"Governance instrument development",d:"Build the signable charter suite and gate instruments that turn endorsement into commitment.",r:{SRA:120,"MAN/ASSOC":680,RA:320,Graphics:60},m:OctMar},
+ {t:"T1",w:"1.2",n:"Sponsor & stakeholder engagement (transition)",d:"Secure named sponsors and empowered POCs for every candidate headed to Gate 4.",r:{SRA:520,"MAN/ASSOC":680,RA:360},m:ALL},
+ {t:"T1",w:"1.3",n:"Senior leadership briefings & talking points",d:"Arm J68 leadership with decision-ready briefs and messaging for every transition conversation.",r:{SRA:240,"MAN/ASSOC":320,RA:320},m:ALL},
+ {t:"T1",w:"1.4",n:"Graphic design & visual products",d:"Give every instrument and briefing a consistent, professional visual identity.",r:{SRA:60,"MAN/ASSOC":200,RA:128,Graphics:504},m:ALL},
+ {t:"T1",w:"1.5",n:"Annual Transition Assessment & Calibration",d:"A ~35-interview enterprise assessment culminating in a working-level forum, AAR, and executive summary that tune the ESF mid-cycle.",r:{SRA:240,"MAN/ASSOC":340,RA:260,Graphics:60},m:AprJun},
+ {t:"T2",w:"2.1",n:"PM process support (scaling packages)",d:"Hands-on help building each candidate's charter, DCG brief, and scaling package.",r:{SRA:160,"MAN/ASSOC":640,RA:480},m:ALL},
+ {t:"T2",w:"2.2",n:"Gate execution (Gates 1–3)",d:"Run Value Path analysis, J8 ROI certification, and decision-ready Scaling Decision Briefs.",r:{SRA:400,"MAN/ASSOC":520,RA:360,Graphics:120},m:DecSep},
+ {t:"T2",w:"2.3",n:"Strategic assessment / PPBE support",d:"Facilitate the PBR-29 cycle and work each candidate's funding path against the POM calendar.",r:{SRA:400,"MAN/ASSOC":320,RA:160},m:OctMar},
+ {t:"T2",w:"2.4",n:"Measurement & institutionalization",d:"KPIs tied to declared value, the portfolio dashboard, and the playbook that lets J68 run cycle two.",r:{SRA:100,"MAN/ASSOC":240,RA:236,Graphics:120},m:AprSep},
+ {t:"T2",w:"2.5",n:"Senior briefings / talking points / graphics",d:"Message and visual products that carry scaling decisions to leadership.",r:{SRA:68,"MAN/ASSOC":160,RA:80,Graphics:230},m:ALL},
+ {t:"T3",w:"3.1",n:"J68–J1 partnership & battle rhythm",d:"A standing monthly working group that puts enterprise change management under J1's authority.",r:{SRA:200,"MAN/ASSOC":480,RA:240},m:ALL},
+ {t:"T3",w:"3.2",n:"Enterprise engagement & socialization",d:"Roadshows, office hours, and leadership touchpoints across every MSC and J-code.",r:{SRA:300,"MAN/ASSOC":560,RA:300},m:ALL},
+ {t:"T3",w:"3.3",n:"Explainer & playbook suite",d:"\u201CWhat the ESF means for you\u201D products that translate the framework for each audience.",r:{SRA:60,"MAN/ASSOC":320,RA:240,Graphics:400},m:OctMay},
+ {t:"T3",w:"3.4",n:"Readiness assessments & CM analytics",d:"Baseline, mid-point, and final adoption measurement so progress is defensible, not anecdotal.",r:{SRA:112,"MAN/ASSOC":240,RA:200},m:ALL},
+ {t:"T3",w:"3.5",n:"Training & enablement",d:"Role-based training that reaches every PM, sponsor, and gate member before the first gate they sit.",r:{SRA:80,"MAN/ASSOC":280,RA:148,Graphics:164},m:JanSep},
+ {t:"T4",w:"4.1",n:"Governed ad-hoc strategic reserve",d:"On-call senior capacity for emergent tasking; bills only against a J68 memo and accepted ROM.",r:{SRA:144,"MAN/ASSOC":96},m:ALL},
+ {t:"T4",w:"4.2",n:"FOS–ESF Futures interface",d:"A three-month sprint giving J35's Future Operating Strategy a front door into the ESF, so DLA seeds tomorrow's R&D on purpose.",r:{SRA:88,"MAN/ASSOC":140,RA:86,Graphics:22},m:OctDec}
+];
+
+/* ================= DERIVED ================= */
+const fmt$ = v => "$"+Math.round(v).toLocaleString();
+const fmtH = v => Math.round(v).toLocaleString();
+const subHours = s => Object.values(s.r).reduce((a,b)=>a+b,0);
+const subCost  = s => Object.entries(s.r).reduce((a,[k,h])=>a+h*RATES[k],0);
+const taskAgg = t => {
+  const list=SUBS.filter(s=>s.t===t);
+  return {hours:list.reduce((a,s)=>a+subHours(s),0), cost:list.reduce((a,s)=>a+subCost(s),0)};
+};
+const BOARD = SUBS.reduce((a,s)=>a+subCost(s),0);
+const HOURS = SUBS.reduce((a,s)=>a+subHours(s),0);
+
+const monthAgg = (()=>{ // {hours[],cost[]}
+  const h=Array(12).fill(0), c=Array(12).fill(0);
+  SUBS.forEach(s=>{
+    const n=s.m.length;
+    s.m.forEach(mi=>{
+      Object.entries(s.r).forEach(([k,hr])=>{h[mi]+=hr/n; c[mi]+=hr/n*RATES[k];});
+    });
+  });
+  return {h,c};
+})();
+const resAgg = (()=>{ const o={};
+  Object.keys(RATES).forEach(k=>o[k]={hours:0,cost:0});
+  SUBS.forEach(s=>Object.entries(s.r).forEach(([k,h])=>{o[k].hours+=h;o[k].cost+=h*RATES[k];}));
+  return o;
+})();
+
+/* ================= OVERVIEW ================= */
+document.getElementById('figures').innerHTML = [
+  [fmt$(BOARD),"Full board · labor"],
+  [fmtH(HOURS)+" hrs","Total level of effort"],
+  ["$"+(BOARD/HOURS).toFixed(2),"Blended rate"],
+  [(HOURS/1880).toFixed(1)+" FTE","At 1,880 hrs / year"]
+].map(([v,l])=>`<div class="fig"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+
+const sb=document.getElementById('sharebar'), sl=document.getElementById('sharelegend');
+TASKS.forEach(t=>{
+  const a=taskAgg(t.id), pct=a.cost/BOARD*100;
+  sb.insertAdjacentHTML('beforeend',`<div style="width:${pct}%;background:${t.acc}" title="${t.name}">${pct.toFixed(1)}%</div>`);
+  sl.insertAdjacentHTML('beforeend',`<span><i style="background:${t.acc}"></i>${t.id} ${t.name} — <b class="num">${fmt$(a.cost)}</b></span>`);
+});
+
+const yb=document.getElementById('yearbars');
+const maxMh=Math.max(...monthAgg.h);
+yb.innerHTML = MONTHS.map((m,i)=>`
+  <div class="rowbar">
+    <div class="lab">${m} ${i<3?"’26":"’27"}<small class="num">${fmt$(monthAgg.c[i])}</small></div>
+    <div class="bar"><i style="width:${monthAgg.h[i]/maxMh*100}%;background:var(--navy)"></i></div>
+    <div class="val num">${fmtH(monthAgg.h[i])}<small>hours</small></div>
+  </div>`).join("");
+
+/* ================= TASKS ================= */
+const tl=document.getElementById('tasklist');
+TASKS.forEach(t=>{
+  const a=taskAgg(t.id);
+  const subs=SUBS.filter(s=>s.t===t.id).map(s=>{
+    const strip=ALL.map(i=>`<i class="${s.m.includes(i)?'on':''}" style="--cell:${t.acc}"></i>`).join("");
+    return `<button class="sub" data-w="${s.w}" style="--acc:${t.acc}">
+      <span class="swbs">${s.w}</span>
+      <span class="smeta"><span class="sname">${s.n}</span><br><span class="sdesc">${s.d}</span></span>
+      <span class="strip" aria-hidden="true">${strip}</span>
+      <span class="sfigs num"><span class="c">${fmt$(subCost(s))}</span><br><span class="h">${fmtH(subHours(s))} hrs</span></span>
+    </button>`;
+  }).join("");
+  tl.insertAdjacentHTML('beforeend',`
+  <div class="taskcard" style="--acc:${t.acc}">
+    <button class="taskhead" aria-expanded="false">
+      <span class="tno">${t.id.slice(1)}</span>
+      <span class="tmeta"><span class="tname">${t.name}</span><br><span class="tdesc">${t.blurb}</span></span>
+      <span class="tfigs num"><span class="c">${fmt$(a.cost)}</span><br><span class="h">${fmtH(a.hours)} hrs · ${(a.cost/BOARD*100).toFixed(1)}%</span></span>
+      <span class="chev">▸</span>
+    </button>
+    <div class="subwrap">${subs}</div>
+  </div>`);
+});
+tl.addEventListener('click',e=>{
+  const head=e.target.closest('.taskhead');
+  if(head){const c=head.parentElement;c.classList.toggle('open');head.setAttribute('aria-expanded',c.classList.contains('open'));return;}
+  const sub=e.target.closest('.sub');
+  if(sub) openDetail(sub.dataset.w);
+});
+
+/* ================= DETAIL SHEET ================= */
+const detail=document.getElementById('detail'), sheet=document.getElementById('sheet');
+function openDetail(w){
+  const s=SUBS.find(x=>x.w===w), t=TASKS.find(x=>x.id===s.t);
+  const n=s.m.length, hrs=subHours(s), cost=subCost(s), maxR=Math.max(...Object.values(s.r));
+  const rows=Object.entries(s.r).map(([k,h])=>`
+    <tr><td>${k}</td>
+    <td><div class="resbar"><i style="width:${h/maxR*100}%"></i></div></td>
+    <td class="r num">${(h/n).toFixed(1)} /mo</td>
+    <td class="r num">${fmtH(h)}</td>
+    <td class="r num">${fmt$(h*RATES[k])}</td></tr>`).join("");
+  const mcells=ALL.map(i=>{
+    const on=s.m.includes(i);
+    return `<div class="mg ${on?'on':''}"><div class="mm">${MONTHS[i]}</div><div class="mv num">${on?fmtH(hrs/n):"–"}</div></div>`;
+  }).join("");
+  sheet.style.setProperty('--acc',t.acc);
+  sheet.style.setProperty('--accsoft',t.tint);
+  sheet.innerHTML=`
+    <button class="close" id="closeD">Close ✕</button>
+    <div class="kicker">${t.id} · ${t.name}</div>
+    <h3>${s.w}&ensp;${s.n}</h3>
+    <p class="lede">${s.d}</p>
+    <table class="dtable">
+      <thead><tr><th>Resource</th><th style="width:34%"></th><th class="r">Hrs / active mo</th><th class="r">Hours</th><th class="r">Cost</th></tr></thead>
+      <tbody>${rows}
+      <tr class="tot"><td>Total</td><td></td><td class="r num">${(hrs/n).toFixed(0)} /mo</td><td class="r num">${fmtH(hrs)}</td><td class="r num">${fmt$(cost)}</td></tr></tbody>
+    </table>
+    <h2 style="margin-top:1.6rem">Schedule <small>total hours by month</small></h2>
+    <div class="mgrid">${mcells}</div>`;
+  detail.classList.add('on');
+  document.getElementById('closeD').focus();
+}
+detail.addEventListener('click',e=>{if(e.target===detail||e.target.id==='closeD')detail.classList.remove('on');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')detail.classList.remove('on');});
+
+/* ================= PRICING ================= */
+function bars(el, rows, color){ // rows:[{lab,sub,val,valsub,pct,c?}]
+  el.innerHTML=rows.map(r=>`
+    <div class="rowbar">
+      <div class="lab">${r.lab}<small>${r.sub||""}</small></div>
+      <div class="bar"><i style="width:${r.pct}%;background:${r.c||color}"></i></div>
+      <div class="val num">${r.val}<small>${r.valsub||""}</small></div>
+    </div>`).join("");
+}
+(function(){
+  // by task — task rows plus each sub-task indented
+  const el=document.getElementById('p-task');
+  let html="";
+  TASKS.forEach(t=>{
+    const a=taskAgg(t.id);
+    html+=`<div class="rowbar"><div class="lab"><b>${t.id} ${t.name}</b><small class="num">${fmtH(a.hours)} hrs · ${(a.cost/BOARD*100).toFixed(1)}% of board</small></div>
+      <div class="bar"><i style="width:${a.cost/BOARD*100}%;background:${t.acc}"></i></div>
+      <div class="val num">${fmt$(a.cost)}</div></div>`;
+    SUBS.filter(s=>s.t===t.id).forEach(s=>{
+      const c=subCost(s);
+      html+=`<div class="rowbar" style="padding-left:1.4rem">
+        <div class="lab" style="font-weight:500">${s.w} ${s.n}<small class="num">${fmtH(subHours(s))} hrs</small></div>
+        <div class="bar"><i style="width:${c/BOARD*100}%;background:${t.acc};opacity:.45"></i></div>
+        <div class="val num" style="font-weight:600">${fmt$(c)}</div></div>`;
+    });
+  });
+  html+=`<p class="note"><b class="num">${fmt$(BOARD)}</b> full board · bars are share of the total build.</p>`;
+  el.innerHTML=html;
+
+  // by resource
+  const el2=document.getElementById('p-resource');
+  const maxC=Math.max(...Object.values(resAgg).map(r=>r.cost));
+  bars(el2, Object.entries(resAgg).map(([k,r])=>({
+    lab:k, sub:`$${RATES[k].toFixed(2)} /hr · ${(r.hours/1880).toFixed(2)} avg FTE`,
+    val:fmt$(r.cost), valsub:fmtH(r.hours)+" hrs", pct:r.cost/maxC*100
+  })), "var(--navy)");
+  el2.insertAdjacentHTML('beforeend',`<p class="note">Four price points only — <b>$291.54 / $186.73 / $155.62</b> — so moving hours within a tier changes the staffing story, not the cost.</p>`);
+
+  // by month
+  const el3=document.getElementById('p-month');
+  const maxMc=Math.max(...monthAgg.c);
+  const qs=[[0,2,"Q1"],[3,5,"Q2"],[6,8,"Q3"],[9,11,"Q4"]];
+  bars(el3, MONTHS.map((m,i)=>({
+    lab:`${m} ${i<3?"’26":"’27"}`, sub:fmtH(monthAgg.h[i])+" hrs",
+    val:fmt$(monthAgg.c[i]), pct:monthAgg.c[i]/maxMc*100,
+    c: i>=6&&i<=8 ? "var(--red)" : "var(--navy)"
+  })), "var(--navy)");
+  const qhtml=qs.map(([a,b,q])=>{
+    const c=monthAgg.c.slice(a,b+1).reduce((x,y)=>x+y,0);
+    return `<b>${q}</b> ${fmt$(c)}`;
+  }).join(" &nbsp;·&nbsp; ");
+  el3.insertAdjacentHTML('beforeend',`<p class="note num">${qhtml} &nbsp;·&nbsp; <b>Total ${fmt$(BOARD)}</b><br>Apr–Jun (red) carries the Annual Transition Assessment &amp; Calibration.</p>`);
+})();
+document.querySelector('.tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.ptab').forEach(x=>x.classList.toggle('on',x.id==='p-'+b.dataset.p));
+});
+
+/* ================= FAQ ================= */
+const FAQ=[
+ {who:"The Client — J68", note:"Questions about value: do I want this?",
+  qs:[
+  ["Why did the number grow from $2.86M to $3.04M since the last version I saw?","The delta is one addition: Sub-Task 1.5, the Annual Transition Assessment & Calibration ($185,123 / 900 hrs). Nothing else moved. Reconcile which board is current before briefing.",1],
+  ["Why is one meeting $185K?","Because it isn't a meeting — it's a three-month assessment: ~35 structured interviews across J68 and stakeholder leadership, a designed calibration forum, and an executive after-action package. The forum is the smallest part of the cost.",0],
+  ["What do I get for $1.09M of Transition Support that my own PMs can't do?","Dedicated capacity your PMs don't have: the instrument build, sustained sponsor engagement across every candidate, and the senior messaging pipeline — plus the mid-year assessment. PMs run projects; this line runs the transitions.",0],
+  ["Why is Change Management 28% of the whole program?","Because the framework is designed and signed — the remaining risk is whether the enterprise uses it. The money follows the risk. A signed framework nobody is trained on is shelfware.",0],
+  ["If the framework is already designed, why do I need $3M to run it?","Design was the cheap part. FY27 buys operation: packages through gates, funding paths worked against the POM, adoption measured, workforce trained — across dozens of organizations for a full cycle.",0],
+  ["What's the minimum viable buy?","Tasks 1 and 2 keep the machine running (~$2.06M). Task 3 is where scale actually happens. Task 4 is small and severable. Cutting Task 3 saves 28% and concedes the adoption risk.",0],
+  ["What happens if I only fund half of this?","Then choose which half of the outcome you're deferring: fund 1+2 and projects transition but the enterprise doesn't adopt; fund 3 and adoption improves but nothing new reaches Gate 4. The tasks were carved to make that trade explicit.",0],
+  ["What do I get in the first 90 days?","Signed instruments in use, the first candidates in package development, the PBR-29 assessment underway, the J1 battle rhythm stood up, and the Futures interface sprint complete (it runs Oct–Dec).",0],
+  ["How do I explain this number to my Director in one sentence?","\u201CIt operationalizes the framework we signed — moving pilots to enterprise use, making the enterprise adopt them, and seeding next-cycle R&D — for about $3M and 8 FTE of support.\u201D",0],
+  ["What does J68 own at the end of FY27 that it doesn't own today?","A running gate cadence with decision-ready briefs, measured adoption against a baseline, an ops playbook and dashboard, a futures intake, and staff who have run one full cycle.",0],
+  ["You promised J68 runs cycle two with less support — how much less?","The declining outyear arc (roughly $2.5M FY28, $2.0M FY29) is the design: CM hands to J1, instruments become application not construction. The FY28/29 table needs real numbers before this is briefed.",1],
+  ["Why is Toffler doing stakeholder engagement instead of my staff?","Toffler runs the engagement machinery — mapping, scheduling, materials, follow-through. Your leaders do the asking. The line buys throughput and consistency, not a substitute for J68's voice.",0],
+  ["Where does GCP support live in this structure now?","In Task 4.1, the governed reserve — GCP is the named example of ad hoc strategic support. It bills only against a J68 tasking memo and an accepted ROM.",0],
+  ["How does this not duplicate what J1 already does?","Task 3 runs through J1, not around it — the partnership and battle rhythm put enterprise CM under J1's authority, with a planned FY28 handoff and no contractor tail.",0],
+  ["Why is J68 paying for something J35 wants (the Futures interface)?","Because the intake lives in J68's framework and feeds J68's pipeline. J35 supplies the demand signal and co-sponsorship; $69K buys J68 a deliberate way to fund long-range R&D.",0],
+  ["What if the FOS release slips past October?","Task 4.2 slides with it — the sprint is sequenced off the FOS draft, not the calendar. The crosswalk method and horizon lane can be built against the draft while release timing settles.",0],
+  ["Which sub-tasks are severable mid-year?","1.5 (self-contained, Apr–Jun), 4.1 (reserve — simply stop tasking it), 4.2 after Dec (complete), and 3.5 training waves. The core cadence lines (1.2, 2.1, 2.2, 3.1) are the ones that shouldn't break.",0],
+  ["What are the three biggest risks and who owns each?","Adoption (J68+J1, mitigated by Task 3), funding-path timing vs. the POM calendar (J68+J8, mitigated by 2.3), and sponsor commitment decay (J68, mitigated by the charter instruments and 1.2).",0],
+  ["What number do you show me in September 2027?","Candidates through Gates 1–3 with decision-ready briefs; adoption movement against the October baseline; one FOS vector seeded; and the FY28 plan showing J68 needing measurably less support.",0],
+  ["Why does the calibration forum exclude me and the DCG principals?","Candor. The operators speak plainly when the deciders aren't in the room. You receive the calibrated output — the AAR and executive summary — not the raw debate.",0]
+ ]},
+ {who:"The Contracting Officer", note:"Questions about basis: can I defend this?",
+  qs:[
+  ["What's the basis of estimate for each sub-task?","Most lines are level-of-effort judgment informed by prior-year actuals; 1.5 is unit-built (~35 interviews). The gate and package lines (2.1, 2.2) should be converted to unit drivers — N packages × hours — before formal submission.",1],
+  ["Is this LOE or completion-form?","Mixed by design: 1.5 and 4.2 are completion-shaped with discrete deliverables; the cadence lines (1.2, 2.1, 3.1) are LOE. Each task should declare its form in the PWS.",0],
+  ["Why are monthly hours fractional (113.3/mo)?","Even spreads across active months. Planning artifact only — the model can round to whole-hour months with a balancing final month without moving totals.",1],
+  ["What are the deliverables and acceptance criteria per sub-task?","Each sub-task in the WBS carries a deliverable statement (charters, briefs, AAR, playbooks, training completions). Formal acceptance criteria belong in the PWS and can be lifted directly from those lines.",0],
+  ["Justify $291.54/hr for the senior category.","It's the portfolio card rate consistent with the OASIS+ M&A domain award, applied with no uplift. The comparison basis is the awarded contract rates, not open-market labor.",0],
+  ["Why does Graphics bill at the mid-tier rate?","The graphics scope here is senior visual-communication work embedded in decision products, mapped to the mid LCAT — not production-shop output. If the government prefers a lower production category for a share of the hours, the model can split the tier.",0],
+  ["Where's the IGCE this will be compared against?","Government-side. The WBS is structured (sub-task × resource × month) specifically so an IGCE can be built against the same lines.",0],
+  ["How is the Task 4.1 reserve not an improper LOE pool?","It's governed: zero hours bill without a J68 tasking memo and an accepted ROM per engagement, logged and reported monthly against a not-to-exceed ceiling. Contractually, a capped T&M CLIN activated by task order.",0],
+  ["Is any of this inherently governmental?","No line makes a government decision. Toffler drafts, analyzes, facilitates, and recommends; signature authority, funding decisions, and gate votes remain with government officials. The PWS should carry explicit advisory-role language.",1],
+  ["What's the labor-mix rationale — 3.3 FTE MAN vs 1.75 SRA?","Deliberate: senior time concentrates on strategy, facilitation, and quality; mid-tier carries the sustained engagement and production volume. A heavier senior mix would raise cost without raising throughput.",0],
+  ["Why 35 interviews for 1.5 rather than 15?","35 is an enterprise read — every MSC/J-code sponsoring a candidate plus J8/J1 counterparts. Interview volume is the explicit cost dial: a 15-interview version prices materially lower and is a legitimate descope.",0],
+  ["Which CLIN / NAICS does each task map to?","All four tasks sit in the OASIS+ Management & Advisory domain (541611 primary; 541618/541690/541990 available). Task-to-CLIN mapping is one-to-one and can be shown in the pricing volume.",0],
+  ["Where are ODCs — enterprise roadshows aren't free?","The build is labor-only by design. Task 3.2 implies travel; an ODC line (travel, materials) should be added before award or the roadshow scope stated as virtual-first.",1],
+  ["FFP, T&M, or cost-type — and why?","Recommended hybrid: completion-shaped lines (1.5, 4.2) FFP; cadence lines T&M with monthly reporting; the reserve a capped T&M CLIN. Matches form to the shape of the work.",0],
+  ["What's the PoP and are option years priced?","Twelve months, Oct 2026–Sep 2027. Outyears are notional planning figures (declining by design) and are not priced options in this build.",0],
+  ["What's the sole-source justification?","Unique qualification: Toffler designed the framework, authored the gap analysis, and holds the working relationships the tasks depend on. That argument needs to be documented in a J&A, not assumed.",0],
+  ["OCI: Toffler assesses its own framework in 1.5 — mitigation?","Real and manageable: the assessment evaluates the enterprise's operation of the framework, not the design; findings are interview-sourced and attributable; the government owns the AAR. A written OCI mitigation plan should accompany the proposal.",1],
+  ["What GFI/access does this assume?","Interview access to MSC/J-code/J8/J1 staff, gate and DCG artifacts, adoption survey distribution, and meeting spaces. Should be enumerated as government responsibilities in the PWS.",0],
+  ["If the government deletes 1.5, what's the price adjustment?","Cleanly severable: minus $185,123 and 900 hours, no ripple into other lines. It's scheduled Apr–Jun and shares no dependencies.",0],
+  ["What backs up an invoice for \u2018battle rhythm\u2019 hours?","Monthly reporting by task: hours by resource by sub-task, deliverables produced, and meeting/engagement logs. The WBS structure is the invoice structure.",0]
+ ]},
+ {who:"The CEO — Toffler", note:"Questions about feasibility: should we sign up for this?",
+  qs:[
+  ["What's our realized margin, and does the bench exist?","Rates are the awarded card, so margin is structural; the question is the 6.2 FTE of MAN+RA labor. If it isn't on the bench today, this is a hire-against-award plan and month one needs a staffing gate.",0],
+  ["Who is the SRA — 1.75 FTE is more than one person?","The single biggest delivery risk in the build. It requires a named second senior or a documented delegation plan; one person cannot cover the campaign peak plus 1.5's interview load.",1],
+  ["What's the probability this awards at $3.04M vs. negotiated down?","Plan the retreat now: the severable lines (1.5, 4.1, training waves) are the negotiation currency. A ~$2.4M floor keeps the core cadence intact.",0],
+  ["Will the $185K calibration line read as gold-plating?","It's the line a reviewer circles first. It survives only if the ~35-interview basis stays welded to the price — if interviews get cut, the price must visibly follow.",0],
+  ["What's our exposure if adoption fails?","Task 3's outcome language must be effort- and instrument-based (baselines run, training delivered, analytics produced), not \u2018the enterprise adopts.\u2019 We can't warrant other organizations' behavior.",0],
+  ["Doesn't \u2018J68 needs us less\u2019 shrink the account by design?","Yes — deliberately. The declining arc is what makes the FY27 ask credible, and the growth story shifts to new scope (futures pipeline, expansion beyond J68), not more of the same.",0],
+  ["Key-person risk if Koch or LeBlanc rotates?","High. Mitigation is institutional anchoring: signed charters, the J1 partnership, and the annual calibration make the program survivable beyond any one sponsor.",0],
+  ["What happens to the HII relationship if we prime this?","The OASIS+ direct award replaces the sub arrangement for this scope. Manage the transition messaging deliberately — HII remains a partner elsewhere in the portfolio.",0],
+  ["Any WOSB/SB status assumptions that recertification could break?","The vehicles slide asserts SB and WOSB pool access. Confirm current certifications before anything goes external — an inaccurate socioeconomic claim is a compliance problem, not a typo.",0],
+  ["Who owns delivery P&L, and what does month one look like?","Needs a named engagement lead before award. Month one: staffing confirmed, battle rhythm stood up, instrument build started, PBR-29 support engaged — four tasks light up simultaneously.",0]
+ ]}
+];
+const flagNote = "Known soft spot in the current build";
+const fl=document.getElementById('faqlist');
+let qn=0;
+FAQ.forEach(g=>{
+  const qs=g.qs.map(([q,a,flag])=>{
+    qn++;
+    return `<div class="q" data-txt="${(q+" "+a).toLowerCase().replace(/"/g,'')}">
+      <button class="qh" aria-expanded="false">
+        <span class="n num">${qn}</span><span class="t">${q}</span>
+        ${flag?`<span class="flag" title="${flagNote}">soft spot</span>`:""}
+      </button>
+      <div class="qa">${a}</div>
+    </div>`;
+  }).join("");
+  fl.insertAdjacentHTML('beforeend',`<div class="faqgrp"><h3>${g.who}</h3><div class="who">${g.note}</div>${qs}</div>`);
+});
+fl.addEventListener('click',e=>{
+  const h=e.target.closest('.qh'); if(!h)return;
+  const q=h.parentElement; q.classList.toggle('open');
+  h.setAttribute('aria-expanded',q.classList.contains('open'));
+});
+document.getElementById('faqsearch').addEventListener('input',e=>{
+  const v=e.target.value.toLowerCase();
+  document.querySelectorAll('#faqlist .q').forEach(q=>{
+    q.style.display = q.dataset.txt.includes(v)?"":"none";
+  });
+});
+
+/* ================= ROUTER ================= */
+const views=["overview","tasks","pricing","faq"];
+function route(){
+  const h=(location.hash||"#overview").slice(1);
+  const v=views.includes(h)?h:"overview";
+  views.forEach(x=>document.getElementById("v-"+x).classList.toggle("on",x===v));
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("active",a.dataset.v===v));
+  window.scrollTo({top:0});
+}
+window.addEventListener("hashchange",route); route();
+</script>
+</body>
+</html>
