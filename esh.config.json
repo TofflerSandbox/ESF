@@ -1,0 +1,12 @@
+{
+  "dataDir": "data/pg",
+  "port": 8787,
+  "workbook": "data/source/master-project-list.xlsx",
+  "sheets": {
+    "lists": { "2025": "2025 Project List", "2026": "2026 Master Project List", "2027": "2027 Project List" },
+    "alignments": { "2026": "2026 Project Alignment", "2027": "2027 Project Alignment" }
+  },
+  "asOf": "2026-11-12",
+  "personAliases": {},
+  "demo": { "flagshipTitle": "", "keepUnseeded": [] }
+}

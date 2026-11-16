@@ -1,0 +1,7 @@
+node_modules/
+dist/
+# Embedded Postgres data dir — contains real DLA project data. Never commit.
+data/
+# Source workbooks — never commit.
+*.xlsx
+esh.config.local.json

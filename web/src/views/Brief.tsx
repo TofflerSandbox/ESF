@@ -1,0 +1,79 @@
+import { api } from '../api';
+import { useMeta } from '../App';
+import { ErrorBox, Loading, Locator, PH_SHORT, STATUS, VP, d10, money, useAsync } from '../ui';
+
+export function Brief({ esh }: { esh: string }) {
+  const meta = useMeta();
+  const { data: r, error } = useAsync(() => api(`/projects/${esh}`), [esh]);
+  if (error) return <ErrorBox msg={error} />;
+  if (!r) return <Loading />;
+  const p = r.project;
+  const gate = Math.min(p.esf_phase ?? 0, 4);
+  const crits = r.criteria.filter((c: any) => c.gate === gate);
+  const pend = crits.filter((c: any) => c.status === 'PENDING');
+  const j68 = r.funding.filter((f: any) => /^J68/i.test(f.source)).reduce((a: number, f: any) => a + Number(f.amount), 0);
+  const program = meta.programs.find(x => x.code === p.program_code);
+  const sponsors = r.orgs.filter((o: any) => o.role === 'SPONSOR').map((o: any) => o.name);
+  const live = p.esf_status === 'ACTIVE' || p.esf_status === 'HOLD';
+
+  return (
+    <div id="brief">
+      <div className="mark">PRE-DECISIONAL // DELIBERATIVE // DRAFT — INTERNAL DLA USE ONLY · TOFFLER SANDBOX DEMO</div>
+      <div className="bf-pad">
+        <div className="bf-actions"><a className="bk" href={'#/p/' + esh}>← Back to record</a><button className="btn ghost" onClick={() => window.print()}>Print / PDF</button></div>
+        <div className="bf-head">
+          <div className="mono kick">DEFENSE LOGISTICS AGENCY · J68 R&D · ESF DECISION BRIEF (GENERATED FROM ESH)</div>
+          <div className="ttl">{p.title}</div>
+          <div className="sub"><b>{p.esh_id}</b> · {program?.name ?? p.program_code} ({p.element_code}) · {live ? `Gate ${gate} decision brief` : `Status brief — ${p.esf_status}`} · {new Date().toISOString().slice(0, 10)}</div>
+        </div>
+        {p.esf_source === 'SUGGESTED' && <div className="banner warn">ESF phase is a system suggestion, not yet confirmed by J68: {p.esf_reason}.</div>}
+
+        <div className="bf-sec">Purpose & bottom line</div>
+        <div className="bf-box">
+          <b>PURPOSE.</b> {live ? `Obtain a decision on Gate ${gate} for ${p.esh_id} under the Enterprise Scaling Framework.` : `Record of ${p.esh_id} for portfolio review.`}{' '}
+          <b>BOTTOM LINE.</b> {r.gates.filter((g: any) => g.outcome === 'PASS').length ? `Gates ${r.gates.filter((g: any) => g.outcome === 'PASS').map((g: any) => 'G' + g.gate).join(', ')} passed. ` : 'No gate decisions recorded in ESH yet. '}
+          {live && `${crits.filter((c: any) => c.status === 'MET').length} of ${crits.length} Gate ${gate} criteria MET${pend.length ? '; pending: ' + pend.map((c: any) => c.text).join('; ') : ''}. `}
+          Reported status FY{p.last_fy}: <b>{p.status_code ? STATUS[p.status_code] : '—'}</b>; PoP {d10(p.pop_start)} → {d10(p.pop_end)}. J68 funding recorded: <b className="mono">{money(j68)}</b>.
+        </div>
+
+        <div className="bf-sec">Problem & approach</div>
+        <p className="bf-p">{p.description ?? '—'}</p>
+        <p className="bf-p"><b>Sponsor(s):</b> {sponsors.join(', ') || '—'} · <b>PM:</b> {r.pm?.name ?? '—'} · <b>Contracts:</b> {r.contracts.map((c: any) => c.number).join(', ') || '—'}</p>
+
+        <div className="bf-sec">Value case</div>
+        {r.values.length ? r.values.map((v: any) => (
+          <p key={v.id} className="bf-p"><b style={{ color: VP[v.path].c }}>{VP[v.path].l}{v.is_primary ? ' (primary)' : ''}.</b> {v.narrative ?? ''} <span className="mono">[{v.metric}: {v.baseline ?? '?'} → {v.projected ?? '?'}{v.annual_value ? `; ${money(v.annual_value)}/yr` : ''}]</span></p>
+        )) : <p className="bf-p muted">No value case declared in ESH.</p>}
+
+        <div className="bf-sec">ESF status — standard locator</div>
+        <Locator phase={p.esf_phase} status={p.esf_status} w={640} />
+        <div className="mono muted" style={{ fontSize: 10 }}>{PH_SHORT.join(' · ')}</div>
+
+        <div className="bf-sec">Strategic alignment</div>
+        <p className="bf-p">{r.priorities.filter((x: any) => x.fy === meta.latestFy).map((x: any) => `${x.owner}: ${x.label}`).join(' · ') || 'Not aligned to an FY' + meta.latestFy + ' priority.'}</p>
+
+        {live && <>
+          <div className="bf-sec">Gate {gate} criteria</div>
+          {crits.map((c: any) => <div key={c.id} className={'crit' + (c.non_waivable ? ' hard' : '')}><span className="st">{c.status}</span><span className="tx"><b>{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}</b>{c.evidence ?? ''}</span></div>)}
+        </>}
+
+        <div className="bf-sec">Funding</div>
+        <table className="gh-tbl"><thead><tr><th>FY</th><th>APPROPRIATION</th><th>SOURCE</th><th>AMOUNT</th></tr></thead>
+          <tbody>{r.funding.length ? r.funding.map((f: any) => <tr key={f.id}><td>FY{String(f.fy).slice(2)}</td><td>{f.appropriation}</td><td>{f.source}</td><td className="money">{money(f.amount)}</td></tr>) : <tr><td colSpan={4}>None recorded in ESH.</td></tr>}</tbody></table>
+
+        <div className="bf-sec">Transition</div>
+        <p className="bf-p">{p.transition_phase ?? '—'}{p.transition_type ? ' · ' + p.transition_type : ''}{r.orgs.some((o: any) => o.role === 'TRANSITION_PARTNER') ? ' · partners: ' + r.orgs.filter((o: any) => o.role === 'TRANSITION_PARTNER').map((o: any) => o.name).join(', ') : ''}</p>
+        {r.paths.map((t: any) => <p key={t.id} className="bf-p"><b>Path {t.path === 'A_WCF' ? 'A — WCF' : 'B — POM'}.</b> {t.mechanism} — <i>{t.status}</i>.</p>)}
+
+        {live && gate === 3 && <>
+          <div className="bf-sec">Commitment instrument — signatures required</div>
+          <div className="sigrow">
+            <div className="sig"><b>J68 R&D DIVISION</b><div className="ln" /><small>Signature — SES/GOFO · non-delegable · Date</small></div>
+            <div className="sig"><b>SPONSOR — {(sponsors.join(' / ') || '—').toUpperCase()}</b><div className="ln" /><small>Signature — SES/GOFO · non-delegable · Date</small></div>
+          </div>
+        </>}
+        <div className="bf-foot">Generated by ESH from the project record and the FY{r.snapshots.map((s: any) => s.fy).join('/')} data-call rows. Every line traces to a stored field.</div>
+      </div>
+    </div>
+  );
+}

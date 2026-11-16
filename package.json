@@ -1,0 +1,36 @@
+{
+  "name": "esh-hub",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Enterprise Scaling Hub — Toffler sandbox demo (local only, real DLA R&D project data)",
+  "scripts": {
+    "import": "tsx server/import/run.ts",
+    "synth": "tsx server/synth/run.ts",
+    "dev:api": "tsx watch server/index.ts",
+    "dev:web": "vite",
+    "dev": "concurrently -n api,web -c blue,yellow \"npm:dev:api\" \"npm:dev:web\"",
+    "build": "vite build",
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@fastify/static": "^8.3.0",
+    "exceljs": "^4.4.0",
+    "fastify": "^5.12.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "concurrently": "^10.0.7",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.6"
+  }
+}
