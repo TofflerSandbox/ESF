@@ -11,6 +11,7 @@ import { Triage } from './views/Triage';
 import { Audit } from './views/Audit';
 import { J1 } from './views/J1';
 import { Org, Orgs } from './views/Org';
+import { ProcessMap } from './views/ProcessMap';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null };
@@ -41,6 +42,7 @@ type NavItem = { h: string; r: string; l: string; i: string; roles?: string[] };
 /** Left navigation. Administration is shown only to the roles that use it: phase review is the admin's onboarding queue,
     the audit log is for the admin and the gate authority (every project record keeps its own audit trail for everyone). */
 const NAV: { g: string; items: NavItem[] }[] = [
+  { g: 'Framework', items: [{ h: 'map', r: 'map', l: 'Process map', i: '◇' }] },
   { g: 'Portfolio', items: [
     { h: '', r: 'dash', l: 'Dashboard', i: '▦' }, { h: 'board', r: 'board', l: 'Pipeline', i: '⇶' },
     { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
@@ -68,7 +70,7 @@ export function App() {
   if (err) return <main><ErrorBox msg={`Cannot reach the ESH API: ${err}. Is the server running (npm run dev)? Has the import been run (npm run import)?`} /></main>;
   if (!meta) return <main><Loading /></main>;
 
-  const key = route === '' ? 'dash' : route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.split('?')[0];
+  const key = route === '' ? 'dash' : route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('map') ? 'map' : route.split('?')[0];
   let view;
   if (route.startsWith('p/')) view = <Record key={route} esh={route.slice(2)} />;
   else if (route.startsWith('brief/')) view = <Brief esh={route.slice(6)} />;
@@ -77,6 +79,7 @@ export function App() {
   else if (route.startsWith('projects')) view = <Projects key={route} initial={route.split('?')[1] ?? ''} />;
   else if (route.startsWith('triage')) view = <Triage />;
   else if (route.startsWith('j1')) view = <J1 />;
+  else if (/^map(\/[0-5])?$/.test(route)) view = <ProcessMap key={route} initial={route.length > 4 ? Number(route.slice(4)) : 0} />;
   else if (/^org\/\d+$/.test(route)) view = <Org key={route} id={Number(route.slice(4))} />;
   else if (route.startsWith('orgs')) view = <Orgs />;
   else if (route.startsWith('audit')) view = <Audit />;

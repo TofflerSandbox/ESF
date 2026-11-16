@@ -79,7 +79,7 @@ export function Phase({ ph }: { ph: number }) {
     <>
       <div className="vhead">
         <div>
-          <div className="crumb"><a href="#/board">Pipeline</a> / {PH_SHORT[ph]}</div>
+          <div className="crumb"><a href="#/board">Pipeline</a> / {PH_SHORT[ph]} · <a href={'#/map/' + ph}>What happens in this phase? →</a></div>
           <h2 className="vt" style={{ color: PH_TXT[ph] }}>{PH_SHORT[ph]} — {PH_NAME[ph]}</h2>
           <div className="vsub">
             {total} project{total === 1 ? '' : 's'} {ph === 5 ? 'at scale' : `active or on hold in ${PH_SHORT[ph]}`} in the FY{fy} data call
