@@ -13,7 +13,7 @@ type Config = {
   /** Misspelled names in source data → canonical name. Customer-specific: keep in esh.config.local.json. */
   personAliases?: Record<string, string>;
   /** Demo seeding choices tied to a customer's real projects. Customer-specific: keep in esh.config.local.json. */
-  demo?: { flagshipTitle?: string; keepUnseeded?: string[] };
+  demo?: { flagshipTitle?: string; keepUnseeded?: string[]; gate3Flagship?: string; gate3Predecessor?: string };
 };
 
 const base = JSON.parse(readFileSync(resolve(ROOT, 'esh.config.json'), 'utf8')) as Config;

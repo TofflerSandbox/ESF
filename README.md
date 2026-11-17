@@ -46,12 +46,13 @@ Put customer-specific settings in `esh.config.local.json`, which is git-ignored 
 | **Dashboard** | Portfolio KPIs, status by data call, ESF phase mix, program and priority heat map, attention and decision queues |
 | **Pipeline** | Board by ESF phase with search; each phase opens its own dashboard (metrics, gate readiness, full project list) |
 | **Projects** | Searchable, filterable list with an *Ask the portfolio* sidebar: plain-English questions ("anything on augmented reality?", "additive manufacturing in Phase II") answered by a local concept search with ranked, explained matches. It runs on the machine; no project data is sent out. Each project record has gate scorecard, value case, funding, pathways, points of contact, workforce impact, history and audit trail, plus a printable decision brief |
-| **Organizations** | One page per organization (same layout for all): live projects by role, phase and program, R&D focal points, project POCs |
+| **Organizations** | An *enterprise scorecard* for the DCG (each sponsoring organization's share of the cost, commitments signed, committed pathways, fielded benefit against plan, what needs attention), then one page per organization: its ownership record and to-do list, live projects by role, phase and program, R&D focal points, project POCs |
+| **Sponsor seats** | Each DLA field activity and J-code that sponsors projects has a seat (a position, not a person). Sponsors sign their own ESF commitments (LOI, reaffirmations, SES funding commitment, operational acceptance) and commit transition pathways; "My organization" lists what is waiting on them |
 | **Workforce & change** | Changes coming to the workforce, the change-management role at each gate, aggregate leader readiness (Kotter's 8 Accelerators) with CSV export, adoption after go-live |
 | **Return on investment** | Two lenses. *Prospective*: the active portfolio's risk-adjusted projected return. *Realized*: projects in the enterprise tracked against the value case frozen at Gate 4 (monthly sponsor reports, J8-validated quarterly; share of plan, back per dollar, payback, who has stopped reporting). An *Ask about ROI* bar answers plain-English questions across both, locally |
 | **Senior leader decisions** | The 11 SES/GOFO policy decisions from the ESF guide, with options, stakes, owner and status; record the decision when made |
 | **Gates / Gate boards** | Gate analysis, plus running the boards themselves: schedule a board, auto-build the docket from ready projects, decide in the meeting with every gate rule enforced, minutes, actions, a printable briefing book |
-| **Funding & transition** | Path A (WCF) vs Path B (POM), the POM-window countdown with Path B projects that must clear PRR first, WCF rate status, funding by year, and a fiscal-law risk register |
+| **Funding & transition** | Transition readiness for every Phase II–IV project (no pathway, declared, committed but incomplete, committed, running) with receiver, funding line and POM year; Path A (WCF) vs Path B (POM), the POM-window countdown, WCF rate status, funding by year, and a fiscal-law risk register |
 | **Stakeholder obligations** | The ESF obligation matrix (who owes what at each gate), tracked live against every project, with co-sponsor accountability by organization |
 | **Data call** | The annual data call run in the Hub: PMs update and submit, J68 approves or returns, closing the call publishes approved updates as that year's data |
 | **Documents** | Required documents by gate, filed against the criterion they close; upload on any project (10 MB, stored under `data/files`), completeness check for passed gates |
@@ -71,7 +72,9 @@ Put customer-specific settings in `esh.config.local.json`, which is git-ignored 
   - A gate decision requires a confirmed phase.
   - A gate can PASS only when every criterion is closed. Non-waivable criteria can never be WAIVED, and change-management criteria can be closed only by that role.
   - Marking a criterion MET requires an evidence reference.
-- **Transition pathways** only advance DECLARED → COMMITTED → ACTIVE (rule R6).
+- **Transition pathways** only advance DECLARED → COMMITTED → ACTIVE (rule R6). The PM or sponsor declares; only the sponsoring organization commits, and a commitment must name the receiving organization, the funding line and (Path B) the POM year.
+- **Sponsor commitments** are signed only by the sponsoring organization's seat (or the admin); nobody waives their own commitment, so only a gate authority can.
+- **Hub proposals to the ESF** are flagged criteria the Hub adds for DLA to accept or reject. The first: Gate 3 requires a committed pathway with all three named; it is checked against the pathway and only a gate authority can waive it.
 - **Audit trail:** every write goes to the append-only `audit_event` table with before and after values.
 - **Alerts:**
   - Project ready for a gate decision.

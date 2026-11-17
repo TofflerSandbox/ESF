@@ -21,11 +21,19 @@ export async function getDb(): Promise<PGlite> {
 export async function syncReference(q: { query: PGlite['query'] }) {
   for (const [g, list] of Object.entries(CRITERIA))
     for (const [i, c] of list.entries())
-      await q.query(`INSERT INTO criterion_def (gate, ord, text, non_waivable, owner) VALUES ($1,$2,$3,$4,$5)
-        ON CONFLICT (gate, ord) DO UPDATE SET text = EXCLUDED.text, non_waivable = EXCLUDED.non_waivable, owner = EXCLUDED.owner`,
-        [+g, i + 1, c.t, !!c.hard, c.owner ?? 'J68']);
+      await q.query(`INSERT INTO criterion_def (gate, ord, text, non_waivable, owner, proposal) VALUES ($1,$2,$3,$4,$5,$6)
+        ON CONFLICT (gate, ord) DO UPDATE SET text = EXCLUDED.text, non_waivable = EXCLUDED.non_waivable, owner = EXCLUDED.owner, proposal = EXCLUDED.proposal`,
+        [+g, i + 1, c.t, !!c.hard, c.owner ?? 'J68', !!c.proposal]);
   const hasUsers = (await q.query<{ n: number }>('SELECT count(*)::int n FROM app_user')).rows[0].n > 0;
-  if (hasUsers) await q.query(`INSERT INTO app_user (name, role) VALUES ('J1 Human Capital Transformation','J1') ON CONFLICT (name) DO NOTHING`);
+  if (!hasUsers) return;
+  await q.query(`INSERT INTO app_user (name, role) VALUES ('J1 Human Capital Transformation','J1') ON CONFLICT (name) DO NOTHING`);
+  // One sponsor seat per DLA field activity or J-code that sponsors three or more projects. A position, not a person.
+  await q.query(`INSERT INTO app_user (name, role, org_id)
+    SELECT o.name || ' — sponsor', 'SPONSOR', o.id FROM org o
+    WHERE o.kind IN ('DLA_MSC','DLA_JCODE') AND o.name NOT ILIKE '%J68%'
+      AND (SELECT count(*) FROM project_org po WHERE po.org_id = o.id AND po.role = 'SPONSOR') >= 3
+    ON CONFLICT (name) DO NOTHING`);
+  await q.query(`DELETE FROM app_user WHERE role = 'SPONSOR' AND name ILIKE '%J68%'`);   // J68 acts through the admin seat
 }
 
 export async function closeDb() {

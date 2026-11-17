@@ -85,7 +85,7 @@ export async function gatesData(db: PGlite) {
   const [decisions, crits, working, status, slots, boards, intake, scaled] = await Promise.all([
     q(`SELECT g.gate, g.outcome, g.decided_at, g.authority, g.rationale, g.exit_reason, g.synthetic, p.esh_id, p.title, p.program_code
        FROM gate_decision g JOIN project p ON p.id = g.project_id ORDER BY g.decided_at DESC, g.id DESC`),
-    q(`SELECT id, gate, ord, text, non_waivable, owner FROM criterion_def ORDER BY gate, ord`),
+    q(`SELECT id, gate, ord, text, non_waivable, owner, proposal FROM criterion_def ORDER BY gate, ord`),
     q(`SELECT p.id, p.esh_id, p.title, p.program_code, p.esf_phase, p.esf_status, pe.name pm, LEAST(p.esf_phase, 4) gate,
          (SELECT max(entered_at) FROM phase_record r WHERE r.project_id = p.id AND r.exited_at IS NULL) entered,
          (SELECT g.rationale FROM gate_decision g WHERE g.project_id = p.id AND g.outcome = 'HOLD' ORDER BY g.decided_at DESC LIMIT 1) hold_reason
@@ -136,7 +136,7 @@ export async function gatesData(db: PGlite) {
     }).sort((a: any, b: any) => a.openCount - b.openCount || (b.months ?? 0) - (a.months ?? 0));
     const criteria = cs.map((c: any) => {
       const met = ws.filter((w: any) => closed(w.id, c.id, c.non_waivable)).length;
-      return { ord: c.ord, text: c.text, non_waivable: c.non_waivable, owner: c.owner, met, open: ws.length - met, total: ws.length, pct: pct(met, ws.length) };
+      return { ord: c.ord, text: c.text, non_waivable: c.non_waivable, owner: c.owner, proposal: c.proposal, met, open: ws.length - met, total: ws.length, pct: pct(met, ws.length) };
     });
     const bottleneck = [...criteria].filter(c => c.total > 0).sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0))[0] ?? null;
     const count = (s: string) => projects.filter((p: any) => p.stage === s).length;

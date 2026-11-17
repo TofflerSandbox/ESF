@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
 import { Card, ErrorBox, GroupBars, Loading, PH_COL, d10, go, useAsync } from '../ui';
+import { HubProposal, SponsorTag } from './Ownership';
 
 const OUT_COL: Record<string, string> = { PASS: '#2F7D5C', HOLD: '#C9A961', SUNSET: '#CE0F3E', DESCOPE: '#8A8378' };
 const OUT_L: Record<string, string> = { PASS: 'Passed', HOLD: 'Held', SUNSET: 'Sunset', DESCOPE: 'Descoped' };
@@ -114,7 +115,7 @@ export function Gates({ initial }: { initial?: number }) {
             <div className="gx-sub">What is still open <span>click a criterion to see who</span></div>
             {G.criteria.map((c: any) => (
               <button key={c.ord} className={'gx-cbar' + (crit === c.ord ? ' on' : '')} onClick={() => setCrit(crit === c.ord ? null : c.ord)} disabled={!c.open}>
-                <span className="gx-ct">{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}{c.owner === 'J1' && <span className="j1tag">J1</span>}</span>
+                <span className="gx-ct">{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}{c.owner === 'J1' && <span className="j1tag">J1</span>}{c.owner === 'SPONSOR' && <SponsorTag />}{c.proposal && <HubProposal />}</span>
                 <span className="gx-track"><span style={{ width: `${Math.max(2, c.pct ?? 0)}%` }} /></span>
                 <span className="gx-cv"><b>{c.open}</b> open</span>
               </button>

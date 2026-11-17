@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
 import { Bars, Card, EL_COL, ErrorBox, Loading, ORG_KIND, PH_COL, PH_SHORT, PhaseChip, ROLE_LABEL, StatusChip, Syn, d10, go, sup, useAsync } from '../ui';
+import { OrgOwnership, Scorecard } from './Ownership';
 
 const ROLE_ORDER = ['SPONSOR', 'STAKEHOLDER', 'TRANSITION_PARTNER', 'ACADEMIA', 'MILITARY', 'OSD_MII', 'VENDOR'];
 
@@ -45,6 +46,8 @@ export function Org({ id }: { id: number }) {
         <div className="kpi" onClick={() => { setRole(''); setLiveOnly(false); }}><div className="v">{d.exits}</div><div className="l">managed exits (sunset or descoped)</div></div>
         <div className="kpi" onClick={() => go('#/j1')}><div className="v">{sup(d.workforce.headcount)}</div><div className="l">of its people reached by {d.workforce.projects} upcoming change{d.workforce.projects === 1 ? '' : 's'}</div></div>
       </div>
+
+      <OrgOwnership id={id} />
 
       <div className="grid2">
         <Card title="Live projects by ESF phase">
@@ -121,7 +124,9 @@ export function Orgs() {
   return (
     <>
       <h2 className="vt">Organizations</h2>
-      <div className="vsub">Every sponsor, stakeholder, transition partner and partner organization on a project. Spellings from the workbooks are merged through the alias table.</div>
+      <div className="vsub">R&D is the enterprise's portfolio, not J68's alone. The scorecard shows what each sponsoring organization has committed to and delivered; below it, every sponsor, stakeholder, transition partner and partner organization on a project.</div>
+      <Scorecard />
+      <h3 className="gsec">All organizations</h3>
       <div className="fbar">
         <input type="search" placeholder="Find an organization…" value={q} onChange={e => setQ(e.target.value)} />
         <select value={kind} onChange={e => setKind(e.target.value)}><option value="">Type: all</option>{Object.entries(ORG_KIND).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>

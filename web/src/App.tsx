@@ -25,9 +25,9 @@ import { Documents } from './views/Documents';
 import { Tour } from './views/Tour';
 
 export type Meta = {
-  me: { id: number; name: string; role: string; person_id: number | null };
+  me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
   latestFy: number; asOf: string;
-  users: { id: number; name: string; role: string; person_id: number | null }[];
+  users: { id: number; name: string; role: string; person_id: number | null; org_id: number | null }[];
   elements: { code: string; name: string }[];
   programs: { code: string; name: string; element_code: string | null; n: number }[];
   pms: { id: number; name: string; n: number }[];
@@ -57,6 +57,7 @@ type NavItem = { h: string; r: string; l: string; i: string; roles?: string[] };
 /** Left navigation. Administration is shown only to the roles that use it: phase review is the admin's onboarding queue,
     the audit log is for the admin and the gate authority (every project record keeps its own audit trail for everyone). */
 const NAV: { g: string; items: NavItem[] }[] = [
+  { g: 'Your organization', items: [{ h: 'org/ME', r: 'myorg', l: 'My organization', i: '★', roles: ['SPONSOR'] }] },
   { g: 'Framework', items: [
     { h: 'map', r: 'map', l: 'Process map', i: '◇' }, { h: 'decisions', r: 'decisions', l: 'Senior leader decisions', i: '⚖' },
     { h: 'tour', r: 'tour', l: 'Guided tour', i: '▶', roles: ['DEMO'] },
@@ -92,7 +93,7 @@ export function App() {
   if (err) return <main><ErrorBox msg={`Cannot reach the ESH API: ${err}. Is the server running (npm run dev)? Has the import been run (npm run import)?`} /></main>;
   if (!meta) return <main><Loading /></main>;
 
-  const key = route === '' ? 'dash' : route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];
+  const key = meta.me.org_id && route === `org/${meta.me.org_id}` ? 'myorg' : route === '' ? 'dash' :route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];
   let view;
   if (route.startsWith('p/')) view = <Record key={route} esh={route.slice(2)} />;
   else if (route.startsWith('brief/')) view = <Brief esh={route.slice(6)} />;
@@ -132,7 +133,7 @@ export function App() {
                 <div key={sec.g} className="navsec">
                   <div className="navg">{sec.g}</div>
                   {items.map(n => (
-                    <a key={n.r} href={'#/' + n.h} className={key === n.r ? 'on' : ''}>
+                    <a key={n.r} href={'#/' + (n.h === 'org/ME' ? `org/${meta.me.org_id}` : n.h)} className={key === n.r ? 'on' : ''}>
                       <span className="ic" aria-hidden="true">{n.i}</span>{n.l}
                       {n.r === 'triage' && meta.unconfirmed > 0 && <span className="badge" title="Projects whose ESF phase is still a suggestion">{meta.unconfirmed}</span>}
                       {n.r === 'datacall' && meta.openDataCall && <span className="badge open" title={`FY${meta.openDataCall.fy} data call is open`}>FY{String(meta.openDataCall.fy).slice(2)}</span>}
@@ -145,8 +146,8 @@ export function App() {
           <label className="who">
             <span>Acting as</span>
             <select value={uid ?? ''} onChange={e => { setUserId(Number(e.target.value)); setUid(Number(e.target.value)); setMeta(null); }}>
-              {['ADMIN', 'AUTHORITY', 'J1', 'VIEWER', 'PM'].map(role => (
-                <optgroup key={role} label={{ ADMIN: 'J68 admin', AUTHORITY: 'Gate authority', J1: 'J1 Human Capital', VIEWER: 'Viewer', PM: 'Program managers' }[role]}>
+              {['ADMIN', 'AUTHORITY', 'SPONSOR', 'J1', 'VIEWER', 'PM'].map(role => (
+                <optgroup key={role} label={{ ADMIN: 'J68 admin', AUTHORITY: 'Gate authority', SPONSOR: 'Sponsoring organizations', J1: 'J1 Human Capital', VIEWER: 'Viewer', PM: 'Program managers' }[role]}>
                   {meta.users.filter(u => u.role === role).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </optgroup>
               ))}

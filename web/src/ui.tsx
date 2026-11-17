@@ -200,8 +200,8 @@ export function Stack({ rows, keys, colors, labels, h = 200, fmt = (v: number) =
   );
 }
 
-export const Card = ({ title, right, children, id, pad = true }: { title: ReactNode; right?: ReactNode; children: ReactNode; id?: string; pad?: boolean }) => (
-  <div className="card" id={id}><div className="chd"><span>{title}</span>{right && <span>{right}</span>}</div><div className={pad ? 'cbd' : ''}>{children}</div></div>
+export const Card = ({ title, right, children, id, pad = true, className }: { title: ReactNode; right?: ReactNode; children: ReactNode; id?: string; pad?: boolean; className?: string }) => (
+  <div className={'card' + (className ? ' ' + className : '')} id={id}><div className="chd"><span>{title}</span>{right && <span>{right}</span>}</div><div className={pad ? 'cbd' : ''}>{children}</div></div>
 );
 
 export const ErrorBox = ({ msg }: { msg: string | null }) => (msg ? <div className="banner err">{msg}</div> : null);

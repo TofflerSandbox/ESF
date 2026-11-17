@@ -11,18 +11,24 @@ export const PHASES = [
 ] as const;
 
 /** Gate criteria — taken from the ESH prototype (spec §6). Placeholder until the ESF spec v0.1 is in hand.
-    `owner: 'J1'` rows are J1's roles in the ESF (white paper §3.1): only J1 (or the admin) can close them. */
-export const CRITERIA: Record<number, { t: string; hard?: boolean; owner?: 'J68' | 'J1' }[]> = {
-  0: [{ t: 'Co-sponsor named (signed LOI)', hard: true }, { t: 'Problem statement scoped' }, { t: 'Value path declared' }, { t: 'ROM estimate provided' }, { t: 'No disqualifying duplication' },
+    `owner: 'J1'` rows are J1's roles in the ESF (white paper §3.1): only J1 (or the admin) can close them.
+    `owner: 'SPONSOR'` rows are the sponsoring organization's own commitments: the sponsor signs them in the Hub (or the admin records them).
+    `proposal: true` rows are Hub proposals to the ESF, not yet ESF policy: flagged in the UI, and only a gate authority can waive one. */
+export type CritOwner = 'J68' | 'J1' | 'SPONSOR';
+export const CRITERIA: Record<number, { t: string; hard?: boolean; owner?: CritOwner; proposal?: boolean }[]> = {
+  0: [{ t: 'Co-sponsor named (signed LOI)', hard: true, owner: 'SPONSOR' }, { t: 'Problem statement scoped' }, { t: 'Value path declared' }, { t: 'ROM estimate provided' }, { t: 'No disqualifying duplication' },
       { t: 'J1 workforce screening and staffing plan', owner: 'J1' }],
-  1: [{ t: 'JHU-APL TRA fully satisfactory (5/5)', hard: true }, { t: 'Value hypothesis validated on DLA data' }, { t: 'CONOPS operationally realistic' }, { t: 'Final S&T report delivered' }, { t: 'Co-sponsor reaffirms commitment' }],
-  2: [{ t: 'PRR passed (SRR→PRR complete)' }, { t: 'J8 Finance ROI certification in writing', hard: true }, { t: 'Transition path formally declared' }, { t: 'Co-sponsor written reaffirmation' }, { t: 'Contracting, Finance, RM, J6 on record' },
+  1: [{ t: 'JHU-APL TRA fully satisfactory (5/5)', hard: true }, { t: 'Value hypothesis validated on DLA data' }, { t: 'CONOPS operationally realistic' }, { t: 'Final S&T report delivered' }, { t: 'Co-sponsor reaffirms commitment', owner: 'SPONSOR' }],
+  2: [{ t: 'PRR passed (SRR→PRR complete)' }, { t: 'J8 Finance ROI certification in writing', hard: true }, { t: 'Transition path formally declared' }, { t: 'Co-sponsor written reaffirmation', owner: 'SPONSOR' }, { t: 'Contracting, Finance, RM, J6 on record' },
       { t: 'J1 workforce readiness check (CM Impact Assessment)', owner: 'J1' }],
-  3: [{ t: 'Signed funding commitment — SES level', hard: true }, { t: 'Multi-site deployment with real users (≥2)' }, { t: 'J6 ATO plan approved' }, { t: 'J6 sandbox connectivity established' }, { t: 'OGC/J7 bridge eligibility documented' },
-      { t: 'Change management statement on the DCG brief (J1)', owner: 'J1' }],
-  4: [{ t: 'Operational owner formal acceptance' }, { t: 'J7 contract closeout / novation confirmed', hard: true }, { t: 'Funding mechanism active' }, { t: 'Performance review schedule established' }, { t: 'Lessons learned documented' },
+  3: [{ t: 'Signed funding commitment — SES level', hard: true, owner: 'SPONSOR' }, { t: 'Multi-site deployment with real users (≥2)' }, { t: 'J6 ATO plan approved' }, { t: 'J6 sandbox connectivity established' }, { t: 'OGC/J7 bridge eligibility documented' },
+      { t: 'Change management statement on the DCG brief (J1)', owner: 'J1' },
+      { t: 'Transition pathway committed: named receiving organization, funding line and POM year', owner: 'SPONSOR', proposal: true }],
+  4: [{ t: 'Operational owner formal acceptance', owner: 'SPONSOR' }, { t: 'J7 contract closeout / novation confirmed', hard: true }, { t: 'Funding mechanism active' }, { t: 'Performance review schedule established' }, { t: 'Lessons learned documented' },
       { t: 'Workforce absorption confirmed (J1)', owner: 'J1' }],
 };
+/** The Gate 3 Hub proposal: met only when a pathway is committed with all three fields. */
+export const PATHWAY_CRIT = { gate: 3, ord: 7 };
 
 /** The five gates: the question each answers, who decides, and the move it controls (from the ESF process map). */
 export const GATES = [

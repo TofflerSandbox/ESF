@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
 import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, d10, go, money, useAsync } from '../ui';
+import { TransitionReadiness } from './Ownership';
 
 const SEV: Record<string, string> = { Critical: '#9B1B2E', High: '#CE0F3E', Medium: '#D9822B' };
 const KIND: Record<string, string> = {
@@ -47,6 +48,8 @@ export function Funding() {
         <div className="hk click" onClick={() => document.getElementById('risks')?.scrollIntoView({ behavior: 'smooth' })}><span className="hk-l">Fiscal-law risks</span><span className="hk-v" style={{ color: 'var(--red)' }}>{k.risks}</span><span className="hk-s">{k.critical} critical · see the register</span></div>
       </div>
       <div className="fine">◆ Funding lines and pathways in this demo are synthetic.</div>
+
+      <TransitionReadiness />
 
       <div className="grid2">
         <Card title={<>Who pays, year by year <Help title="Who pays, year by year">The ESF moves a project from J68 R&D money (RDT&E) to its sponsor's money (WCF or O&M) as it nears scale. Each bar is one fiscal year's funding lines across the portfolio. A healthy portfolio shows the green share growing.</Help></>} right={<span className="hint">$ millions</span>}>

@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useMeta } from '../App';
 import { auditText } from '../auditText';
 import { ProjectDocuments } from './Documents';
+import { HubProposal, SponsorTag } from './Ownership';
 import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
 
 /** Darker text versions of the status colours, readable on white. */
@@ -103,12 +104,30 @@ export function Record({ esh }: { esh: string }) {
         </div>
       )}
 
+      {meta.me.role === 'SPONSOR' && r.canSponsor && (() => {
+        const toSign = live ? crits.filter((c: any) => c.owner === 'SPONSOR' && c.status === 'PENDING') : [];
+        const toCommit = r.paths.filter((t: any) => t.status === 'DECLARED' || (t.status === 'COMMITTED' && (!t.receiver_org_id || !t.funding_line || (t.path === 'B_POM' && !t.pom_fy))));
+        return (
+          <div className="banner own">
+            <b>Your organization sponsors this project.</b>{' '}
+            {toSign.length || toCommit.length
+              ? <>Waiting on you: {toSign.map((c: any) => `Gate ${c.gate} criterion ${c.ord} (${c.text})`).join('; ')}{toSign.length && toCommit.length ? '; ' : ''}{toCommit.length ? `${toCommit.length} pathway${toCommit.length === 1 ? '' : 's'} to commit or complete` : ''}.</>
+              : 'Nothing is waiting on your organization at this gate.'}
+          </div>
+        );
+      })()}
+
       <div className="rgrid">
         <div className="colstack">
           {live && (
             <Card title={`Gate ${gate} scorecard — ${crits.filter((c: any) => c.status !== 'PENDING').length}/${crits.length} closed`}
               right={r.criteria && crits.every((c: any) => c.status === 'MET' || (c.status === 'WAIVED' && !c.non_waivable)) ? <b style={{ color: 'var(--spon)' }}>READY FOR AUTHORITY</b> : <span className="mono">IN WORK</span>}>
-              {crits.map((c: any) => <CriterionRow key={c.id} c={c} canEdit={(c.owner === 'J1' ? r.canJ1 : r.canEdit) && p.esf_source === 'CONFIRMED'} onSave={(b) => act(`/criteria/${c.id}`, 'PUT', b, 'Criterion updated')} />)}
+              {crits.map((c: any) => {
+                const own = c.owner === 'J1' ? r.canJ1 : c.owner === 'SPONSOR' ? r.canSponsor : r.canEdit;
+                const sponsorish = c.owner === 'SPONSOR' || c.proposal;
+                return <CriterionRow key={c.id} c={c} canClose={own} canWaive={sponsorish ? r.canDecide : own && !c.non_waivable}
+                  canEdit={(own || (sponsorish && r.canDecide)) && p.esf_source === 'CONFIRMED'} onSave={(b) => act(`/criteria/${c.id}`, 'PUT', b, 'Criterion updated')} />;
+              })}
               {p.esf_source !== 'CONFIRMED' && <div className="note">Criteria can be worked once the phase is confirmed.</div>}
               {r.canDecide && p.esf_source === 'CONFIRMED' && <GateForm gate={gate} onSave={(b) => act('/gates', 'POST', b, 'Gate decision recorded')} />}
             </Card>
@@ -201,18 +220,29 @@ export function Record({ esh }: { esh: string }) {
           </Card>
 
           <Card title="Transition pathways">
-            {r.paths.map((t: any) => (
-              <div key={t.id} className="path">
-                <div className="row"><b>Path {t.path === 'A_WCF' ? 'A — WCF' : 'B — POM'}</b><span><Syn on={t.synthetic} /> <Chip c={t.status === 'ACTIVE' ? 'var(--spon)' : t.status === 'COMMITTED' ? 'var(--goldD)' : 'var(--slate)'}>{t.status}</Chip></span></div>
-                <div className="sub">{t.mechanism}</div>
-                <div className="mono sub">{t.committed_at ? 'committed ' + d10(t.committed_at) + ' · ' : ''}{t.path === 'A_WCF' ? '18-mo rate-setting' : 'POM window Jul–Aug'}</div>
-                {r.canEdit && t.status !== 'ACTIVE' && <button className="btn sm ghost" onClick={() => act(`/pathways/${t.id}/advance`, 'POST', { status: t.status === 'DECLARED' ? 'COMMITTED' : 'ACTIVE' }, 'Pathway advanced')}>
-                  Mark {t.status === 'DECLARED' ? 'committed (locks declaration)' : 'active'}</button>}
-              </div>
-            ))}
+            {r.paths.map((t: any) => {
+              const missing = [!t.receiver_org_id && 'receiving organization', !t.funding_line && 'funding line', t.path === 'B_POM' && !t.pom_fy && 'POM year'].filter(Boolean) as string[];
+              return (
+                <div key={t.id} className="path">
+                  <div className="row"><b>Path {t.path === 'A_WCF' ? 'A — WCF' : 'B — POM'}</b><span><Syn on={t.synthetic} /> <Chip c={t.status === 'ACTIVE' ? 'var(--spon)' : t.status === 'COMMITTED' ? 'var(--goldD)' : 'var(--slate)'}>{t.status}</Chip></span></div>
+                  <div className="sub">{t.mechanism}</div>
+                  <div className="path-facts">
+                    <span><i>Receiver</i>{t.receiver ?? <em>not named</em>}</span>
+                    <span><i>Funding line</i>{t.funding_line ?? <em>not named</em>}</span>
+                    {t.path === 'B_POM' && <span><i>POM year</i>{t.pom_fy ? `FY${t.pom_fy}` : <em>not set</em>}</span>}
+                  </div>
+                  {t.status !== 'DECLARED' && missing.length > 0 && <div className="banner warn sm">Committed without a {missing.join(', ')}. It won't meet the Gate 3 Hub proposal until the sponsor completes it.</div>}
+                  <div className="mono sub">{t.committed_at ? 'committed ' + d10(t.committed_at) + ' · ' : ''}{t.path === 'A_WCF' ? '18-mo rate-setting' : 'POM window Jul–Aug'}</div>
+                  {r.canSponsor && t.status === 'DECLARED' && <CommitForm t={t} label="Commit (sponsor)" onSave={(b) => act(`/pathways/${t.id}/advance`, 'POST', { status: 'COMMITTED', ...b }, 'Pathway committed')} />}
+                  {r.canSponsor && t.status === 'COMMITTED' && missing.length > 0 && <CommitForm t={t} label="Complete the commitment" onSave={(b) => act(`/pathways/${t.id}`, 'PATCH', b, 'Commitment completed')} />}
+                  {r.canSponsor && t.status === 'COMMITTED' && missing.length === 0 && <button className="btn sm ghost" onClick={() => act(`/pathways/${t.id}/advance`, 'POST', { status: 'ACTIVE' }, 'Pathway active')}>Mark active (receiver is running it)</button>}
+                  {!r.canSponsor && t.status === 'DECLARED' && <div className="note sm">Only the sponsoring organization can commit this pathway.</div>}
+                </div>
+              );
+            })}
             {r.paths.length === 0 && <div className="note">No pathway declared.</div>}
-            {r.canEdit && <PathForm onSave={(b) => act('/pathways', 'POST', b, 'Pathway declared')} />}
-            <div className="note">Committed declarations are locked per lifecycle rule R6.</div>
+            {(r.canEdit || r.canSponsor) && <PathForm onSave={(b) => act('/pathways', 'POST', b, 'Pathway declared')} />}
+            <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked (rule R6).</div>
           </Card>
 
           <Card title="ESF history">
@@ -302,21 +332,25 @@ function TriageForm({ p, onSave }: { p: any; onSave: (b: any) => Promise<boolean
   );
 }
 
-function CriterionRow({ c, canEdit, onSave }: { c: any; canEdit: boolean; onSave: (b: any) => Promise<boolean> }) {
+function CriterionRow({ c, canEdit, canClose = canEdit, canWaive = canEdit && !c.non_waivable, onSave }: { c: any; canEdit: boolean; canClose?: boolean; canWaive?: boolean; onSave: (b: any) => Promise<boolean> }) {
   const [edit, setEdit] = useState(false);
   const [status, setStatus] = useState(c.status);
   const [ev, setEv] = useState(c.evidence ?? '');
   const col = c.status === 'MET' ? ['var(--spon)', 'var(--sponBg)'] : c.status === 'WAIVED' ? ['var(--slate)', '#EDEBE4'] : ['var(--goldD)', 'var(--goldBg)'];
+  const options = ['PENDING', ...(canClose ? ['MET'] : []), ...(canWaive && !c.non_waivable ? ['WAIVED'] : [])];
+  const pathwayCrit = c.proposal && c.gate === 3;
   return (
-    <div className={'crit' + (c.non_waivable ? ' hard' : '')}>
+    <div className={'crit' + (c.non_waivable ? ' hard' : '') + (c.owner === 'SPONSOR' ? ' sp' : '')}>
       <span className="st" style={{ color: col[0], background: col[1] }}>{c.status}</span>
       <span className="tx">
-        <b>{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}{c.owner === 'J1' && <span className="j1tag" title="Closed by J1 Human Capital Transformation">J1</span>}</b>
-        {c.evidence ? <>Evidence: {c.evidence} <span className="muted">· {c.updated_by}</span> <Syn on={c.synthetic} /></> : 'Awaiting evidence or signature.'}
+        <b>{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}{c.owner === 'J1' && <span className="j1tag" title="Closed by J1 Human Capital Transformation">J1</span>}
+          {c.owner === 'SPONSOR' && <SponsorTag />}{c.proposal && <HubProposal />}</b>
+        {c.evidence ? <>Evidence: {c.evidence} <span className="muted">· {c.updated_by}</span> <Syn on={c.synthetic} /></>
+          : c.owner === 'SPONSOR' ? 'Awaiting the sponsoring organization’s signature.' : 'Awaiting evidence or signature.'}
         {edit && (
           <span className="inline-form">
-            <select value={status} onChange={e => setStatus(e.target.value)}>{['PENDING', 'MET', ...(c.non_waivable ? [] : ['WAIVED'])].map(s => <option key={s}>{s}</option>)}</select>
-            <input placeholder="Evidence reference (doc #, date, signer)" value={ev} onChange={e => setEv(e.target.value)} />
+            <select value={status} onChange={e => setStatus(e.target.value)}>{options.map(s => <option key={s} value={s}>{s === 'MET' && c.owner === 'SPONSOR' ? 'MET (sign)' : s}</option>)}</select>
+            <input placeholder={pathwayCrit ? 'Filled from the committed pathway' : status === 'WAIVED' ? 'Why it is waived (required)' : c.owner === 'SPONSOR' ? 'Signature reference (memo #, date, signer position)' : 'Evidence reference (doc #, date, signer)'} value={ev} onChange={e => setEv(e.target.value)} />
             <button className="btn sm" onClick={async () => { if (await onSave({ status, evidence: ev || null })) setEdit(false); }}>Save</button>
             <button className="btn sm ghost" onClick={() => setEdit(false)}>Cancel</button>
           </span>
@@ -382,6 +416,31 @@ function FundingForm({ onSave }: { onSave: (b: any) => Promise<boolean> }) {
       <input type="date" title="PoP end" value={b.pop_end} onChange={s('pop_end')} />
       <div><button className="btn sm" onClick={async () => { if (await onSave({ fy: Number(b.fy), appropriation: b.appropriation, source: b.source, amount: Number(b.amount), pop_end: b.pop_end || null })) setOpen(false); }}>Add</button>
         <button className="btn sm ghost" onClick={() => setOpen(false)}>Cancel</button></div>
+    </div>
+  );
+}
+
+/** The sponsor's commitment: who receives the capability, the line that pays for it, and (Path B) the POM year. Prefilled from what is already there. */
+function CommitForm({ t, label, onSave }: { t: any; label: string; onSave: (b: any) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const { data: orgs } = useAsync(() => (open ? api('/org-index') : Promise.resolve(null)), [open]);
+  const [b, setB] = useState({ receiver_org_id: t.receiver_org_id ? String(t.receiver_org_id) : '', funding_line: t.funding_line ?? '', pom_fy: t.pom_fy ? String(t.pom_fy) : '' });
+  if (!open) return <button className="btn sm" onClick={() => setOpen(true)}>{label}</button>;
+  const dla = (orgs?.rows ?? []).filter((o: any) => ['DLA_MSC', 'DLA_JCODE'].includes(o.kind)).sort((a: any, c: any) => a.name.localeCompare(c.name));
+  const s = (k: string) => (e: any) => setB({ ...b, [k]: e.target.value });
+  return (
+    <div className="form">
+      <select value={b.receiver_org_id} onChange={s('receiver_org_id')} disabled={!!t.receiver_org_id && t.status !== 'DECLARED'} aria-label="Receiving organization">
+        <option value="">Receiving organization…</option>{dla.map((o: any) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
+      <input placeholder={t.path === 'A_WCF' ? 'Funding line (e.g. WCF cost recovery — DLA Troop Support supply chain)' : 'Funding line (e.g. O&M, DLA Distribution — sustainment line)'} value={b.funding_line} onChange={s('funding_line')} disabled={!!t.funding_line && t.status !== 'DECLARED'} />
+      {t.path === 'B_POM' && <input type="number" placeholder="POM year (e.g. 2028)" value={b.pom_fy} onChange={s('pom_fy')} disabled={!!t.pom_fy && t.status !== 'DECLARED'} />}
+      <div><button className="btn sm" onClick={async () => {
+        const body: any = {};
+        if (b.receiver_org_id) body.receiver_org_id = Number(b.receiver_org_id);
+        if (b.funding_line.trim()) body.funding_line = b.funding_line.trim();
+        if (b.pom_fy) body.pom_fy = Number(b.pom_fy);
+        if (await onSave(body)) setOpen(false);
+      }}>{label}</button><button className="btn sm ghost" onClick={() => setOpen(false)}>Cancel</button></div>
     </div>
   );
 }

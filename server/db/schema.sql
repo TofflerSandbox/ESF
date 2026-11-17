@@ -333,7 +333,8 @@ ALTER TABLE project_priority ADD COLUMN IF NOT EXISTS synthetic boolean NOT NULL
 -- In the demo every row here is synthetic. People are pseudonymous: no names leave DCPDS.
 ALTER TABLE criterion_def ADD COLUMN IF NOT EXISTS owner text NOT NULL DEFAULT 'J68';
 ALTER TABLE app_user DROP CONSTRAINT IF EXISTS app_user_role_check;
-ALTER TABLE app_user ADD CONSTRAINT app_user_role_check CHECK (role IN ('ADMIN','PM','AUTHORITY','VIEWER','J1'));
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS org_id int REFERENCES org(id);   -- SPONSOR users act for one organization
+ALTER TABLE app_user ADD CONSTRAINT app_user_role_check CHECK (role IN ('ADMIN','PM','AUTHORITY','VIEWER','J1','SPONSOR'));
 
 -- individual staffing profiles were dropped from the prototype (too much detail for J1's use)
 DROP TABLE IF EXISTS staff_assignment;
@@ -439,3 +440,11 @@ CREATE TABLE IF NOT EXISTS import_run (
   source text NOT NULL,
   report jsonb NOT NULL
 );
+
+-- ───────────── enterprise ownership ─────────────
+-- Sponsors sign their own commitments (criteria owned by SPONSOR) and commit transition pathways.
+-- Hub proposals are criteria the Hub adds to the ESF for DLA to accept or reject; they are flagged, and only a gate authority can waive one.
+ALTER TABLE criterion_def ADD COLUMN IF NOT EXISTS proposal boolean NOT NULL DEFAULT false;
+ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS receiver_org_id int REFERENCES org(id);  -- who takes it on and pays to run it
+ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS funding_line text;                        -- the line that funds it after transition
+ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS pom_fy int;                               -- Path B: the POM year it is programmed in

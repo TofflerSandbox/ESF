@@ -3,16 +3,17 @@ import type { PGlite, Transaction } from '@electric-sql/pglite';
 import { z } from 'zod';
 import { audit } from './db/db.js';
 import { AS_OF } from './config.js';
-import { EXIT_REASONS, KOTTER, PHASES, STATUS_LABEL, TECH_RESULTS } from './domain.js';
+import { EXIT_REASONS, KOTTER, PATHWAY_CRIT, PHASES, STATUS_LABEL, TECH_RESULTS } from './domain.js';
 import { healthData, homeData } from './home.js';
 import { roiData } from './roi.js';
 import { exitsData, gatesData } from './analysis.js';
 import { registerOps } from './ops.js';
 import { registerAssist } from './assist.js';
 import { registerRoiAsk } from './roiAsk.js';
+import { registerOwnership } from './ownership.js';
 import { DOC_TYPES } from './esfContent.js';
 
-type User = { id: number; name: string; role: 'ADMIN' | 'PM' | 'AUTHORITY' | 'VIEWER' | 'J1'; person_id: number | null };
+type User = { id: number; name: string; role: 'ADMIN' | 'PM' | 'AUTHORITY' | 'VIEWER' | 'J1' | 'SPONSOR'; person_id: number | null; org_id: number | null };
 
 /** Kotter readiness is only ever reported in aggregate: per accelerator, across all sponsoring senior leaders assessed. */
 async function kotterAggregate(db: PGlite) {
@@ -32,8 +33,8 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   /* ── auth stand-in: the UI sends x-esh-user (app_user.id). In production this comes from the OIDC token. ── */
   const userOf = async (req: FastifyRequest): Promise<User> => {
     const id = Number(req.headers['x-esh-user']);
-    const u = id ? (await db.query<User>('SELECT id, name, role, person_id FROM app_user WHERE id=$1', [id])).rows[0] : undefined;
-    return u ?? { id: 0, name: 'anonymous', role: 'VIEWER', person_id: null };
+    const u = id ? (await db.query<User>('SELECT id, name, role, person_id, org_id FROM app_user WHERE id=$1', [id])).rows[0] : undefined;
+    return u ?? { id: 0, name: 'anonymous', role: 'VIEWER', person_id: null, org_id: null };
   };
   const projectByEsh = async (q: Q, esh: string) => {
     const p = (await q.query<Record<string, any>>('SELECT * FROM project WHERE esh_id=$1', [esh])).rows[0];
@@ -43,6 +44,12 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   const canEdit = (u: User, p: Record<string, any>) => u.role === 'ADMIN' || (u.role === 'PM' && u.person_id != null && u.person_id === p.pm_id);
   const requireEdit = (u: User, p: Record<string, any>) => { if (!canEdit(u, p)) throw new HttpError(403, `${u.name} (${u.role}) cannot edit ${p.esh_id}`); };
   const requireRole = (u: User, ...roles: User['role'][]) => { if (!roles.includes(u.role)) throw new HttpError(403, `Requires role ${roles.join(' or ')}`); };
+  /** A sponsor seat acts only for projects its organization sponsors; the admin can record on a sponsor's behalf. */
+  const isSponsorOf = async (q: Q, u: User, projectId: number) => u.role === 'ADMIN' || (u.role === 'SPONSOR' && u.org_id != null
+    && (await q.query(`SELECT 1 FROM project_org WHERE project_id=$1 AND org_id=$2 AND role='SPONSOR'`, [projectId, u.org_id])).rows.length > 0);
+  const requireSponsor = async (q: Q, u: User, p: Record<string, any>) => {
+    if (!(await isSponsorOf(q, u, p.id))) throw new HttpError(403, `Only ${p.esh_id}'s sponsoring organization (or the admin) can do this`);
+  };
   const wrap = (fn: (req: FastifyRequest, u: User) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
     try { return await fn(req, await userOf(req)); }
     catch (e) {
@@ -58,7 +65,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   app.get('/api/meta', wrap(async (_req, me) => {
     const fy = await latestFy();
     const [users, elements, programs, pms, criteria, priorities, fys, lastImport, synthetic, scenarios] = await Promise.all([
-      db.query('SELECT id, name, role, person_id FROM app_user ORDER BY CASE role WHEN \'ADMIN\' THEN 0 WHEN \'AUTHORITY\' THEN 1 WHEN \'J1\' THEN 2 WHEN \'VIEWER\' THEN 3 ELSE 4 END, name'),
+      db.query('SELECT id, name, role, person_id, org_id FROM app_user ORDER BY CASE role WHEN \'ADMIN\' THEN 0 WHEN \'AUTHORITY\' THEN 1 WHEN \'J1\' THEN 2 WHEN \'SPONSOR\' THEN 3 WHEN \'VIEWER\' THEN 4 ELSE 5 END, name'),
       db.query('SELECT * FROM element ORDER BY code'),
       db.query(`SELECT pr.code, pr.name, pr.element_code, count(p.id)::int AS n FROM program pr LEFT JOIN project p ON p.program_code = pr.code GROUP BY pr.code ORDER BY pr.code`),
       db.query('SELECT pe.id, pe.name, count(p.id)::int n FROM person pe JOIN project p ON p.pm_id = pe.id GROUP BY pe.id ORDER BY pe.name'),
@@ -217,11 +224,11 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       q('SELECT pri.id, pri.fy, pri.owner, pri.label, pp.synthetic FROM project_priority pp JOIN priority pri ON pri.id = pp.priority_id WHERE pp.project_id=$1 ORDER BY pri.fy DESC, pri.ord'),
       q('SELECT * FROM phase_record WHERE project_id=$1 ORDER BY entered_at, id'),
       q('SELECT * FROM gate_decision WHERE project_id=$1 ORDER BY decided_at, id'),
-      q(`SELECT d.id, d.gate, d.ord, d.text, d.non_waivable, d.owner, coalesce(s.status,'PENDING') status, s.evidence, s.updated_by, s.updated_at, coalesce(s.synthetic, false) synthetic
+      q(`SELECT d.id, d.gate, d.ord, d.text, d.non_waivable, d.owner, d.proposal, coalesce(s.status,'PENDING') status, s.evidence, s.updated_by, s.updated_at, coalesce(s.synthetic, false) synthetic
          FROM criterion_def d LEFT JOIN criterion_status s ON s.criterion_id = d.id AND s.project_id=$1 ORDER BY d.gate, d.ord`),
       q('SELECT * FROM funding_line WHERE project_id=$1 ORDER BY fy, id'),
       q('SELECT * FROM value_case WHERE project_id=$1 ORDER BY is_primary DESC, id'),
-      q('SELECT * FROM transition_pathway WHERE project_id=$1 ORDER BY id'),
+      q('SELECT t.*, o.name receiver FROM transition_pathway t LEFT JOIN org o ON o.id = t.receiver_org_id WHERE t.project_id=$1 ORDER BY t.id'),
       db.query<any>('SELECT * FROM audit_event WHERE entity=\'project\' AND entity_id=$1 ORDER BY at DESC, id DESC LIMIT 50', [p.esh_id]).then(r => r.rows),
     ]);
     const [impacts, adoption, contacts, fills, documents] = await Promise.all([
@@ -236,7 +243,8 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
     ]);
     const workforce = { impacts, adoption };
     return { project: p, pm, orgs, ext, contracts, snapshots, priorities, phases, gates, criteria, funding, values, paths, audit: auditRows, workforce, contacts, fills, documents,
-      canEdit: canEdit(me, p), canJ1: me.role === 'J1' || me.role === 'ADMIN', canDecide: me.role === 'ADMIN' || me.role === 'AUTHORITY', canTriage: me.role === 'ADMIN' };
+      canEdit: canEdit(me, p), canJ1: me.role === 'J1' || me.role === 'ADMIN', canDecide: me.role === 'ADMIN' || me.role === 'AUTHORITY', canTriage: me.role === 'ADMIN',
+      canSponsor: me.role === 'ADMIN' || (me.role === 'SPONSOR' && orgs.some((o: any) => o.role === 'SPONSOR' && o.id === me.org_id)) };
   }));
 
   /* ── PM data-call edit ── */
@@ -290,8 +298,19 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       const p = await projectByEsh(tx, (req.params as any).esh);
       const d = (await tx.query<any>('SELECT * FROM criterion_def WHERE id=$1', [Number((req.params as any).cid)])).rows[0];
       if (!d) throw new HttpError(404, 'No such criterion');
-      // J1-owned criteria (white paper §3.1) are closed by J1; everything else by the project's PM
-      if (d.owner === 'J1') requireRole(me, 'J1', 'ADMIN'); else requireEdit(me, p);
+      // J1-owned criteria (white paper §3.1) are closed by J1; sponsor-owned ones are signed by the sponsoring organization; everything else by the PM.
+      // A sponsor's commitment or a Hub proposal can only be waived by a gate authority: nobody waives their own commitment.
+      if (b.status === 'WAIVED' && (d.owner === 'SPONSOR' || d.proposal)) requireRole(me, 'AUTHORITY', 'ADMIN');
+      else if (d.owner === 'J1') requireRole(me, 'J1', 'ADMIN');
+      else if (d.owner === 'SPONSOR') await requireSponsor(tx, me, p);
+      else requireEdit(me, p);
+      if (d.gate === PATHWAY_CRIT.gate && d.ord === PATHWAY_CRIT.ord && b.status === 'MET') {
+        const t = (await tx.query<any>(`SELECT t.*, o.name receiver FROM transition_pathway t LEFT JOIN org o ON o.id = t.receiver_org_id
+          WHERE t.project_id=$1 AND t.status IN ('COMMITTED','ACTIVE') AND t.receiver_org_id IS NOT NULL AND t.funding_line IS NOT NULL AND (t.path = 'A_WCF' OR t.pom_fy IS NOT NULL)
+          ORDER BY t.id LIMIT 1`, [p.id])).rows[0];
+        if (!t) throw new HttpError(409, 'Commit a transition pathway with a named receiving organization, funding line and (Path B) POM year first');
+        b.evidence = b.evidence?.trim() || `Pathway committed: ${t.receiver} · ${t.funding_line}${t.pom_fy ? ` · POM FY${t.pom_fy}` : ''}`;
+      }
       if (d.gate !== Math.min(p.esf_phase ?? 0, 4)) throw new HttpError(409, `Criterion belongs to Gate ${d.gate}; project is working toward Gate ${Math.min(p.esf_phase ?? 0, 4)}`);
       if (b.status === 'WAIVED' && d.non_waivable) throw new HttpError(409, 'This criterion is non-waivable');
       if (b.status === 'MET' && !b.evidence?.trim()) throw new HttpError(400, 'Evidence reference is required to mark a criterion MET');
@@ -354,6 +373,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   registerOps(app, db, { wrap, requireRole, requireEdit, canEdit, projectByEsh, recordGate, Gate, HttpError, latestFy });
   registerAssist(app, db, { wrap });
   registerRoiAsk(app, db, { wrap });
+  registerOwnership(app, db, { wrap });
 
   /* ── funding, value case, pathways ── */
   const Funding = z.object({ fy: z.number().int().min(2015).max(2040), appropriation: z.enum(['RDT&E BA3', 'RDT&E BA6', 'O&M', 'WCF', 'Procurement']),
@@ -383,28 +403,57 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
     });
   }));
 
-  const Path = z.object({ path: z.enum(['A_WCF', 'B_POM']), mechanism: z.string().min(3).max(300) }).strict();
+  // The PM (or the sponsor) declares a pathway; only the sponsoring organization commits it, and a commitment must name
+  // who receives it, the line that funds it, and (Path B) the POM year. Rule R6: status only moves forward.
+  const PathDetail = { receiver_org_id: z.number().int().positive().nullable().optional(), funding_line: z.string().min(3).max(200).nullable().optional(),
+    pom_fy: z.number().int().min(2026).max(2040).nullable().optional() };
+  const Path = z.object({ path: z.enum(['A_WCF', 'B_POM']), mechanism: z.string().min(3).max(300), ...PathDetail }).strict();
   app.post('/api/projects/:esh/pathways', wrap(async (req, me) => {
     const b = Path.parse(req.body);
     return db.transaction(async tx => {
-      const p = await projectByEsh(tx, (req.params as any).esh); requireEdit(me, p);
-      const r = (await tx.query<any>('INSERT INTO transition_pathway (project_id, path, mechanism, status) VALUES ($1,$2,$3,\'DECLARED\') RETURNING id', [p.id, b.path, b.mechanism])).rows[0];
+      const p = await projectByEsh(tx, (req.params as any).esh);
+      if (!canEdit(me, p)) await requireSponsor(tx, me, p);
+      const r = (await tx.query<any>(`INSERT INTO transition_pathway (project_id, path, mechanism, status, receiver_org_id, funding_line, pom_fy) VALUES ($1,$2,$3,'DECLARED',$4,$5,$6) RETURNING id`,
+        [p.id, b.path, b.mechanism, b.receiver_org_id ?? null, b.funding_line ?? null, b.pom_fy ?? null])).rows[0];
       await audit(tx, me.name, 'project', p.esh_id, 'PATHWAY_DECLARE', null, b);
       return r;
     });
   }));
-  // Rule R6: a committed declaration is locked — status can only move forward (DECLARED → COMMITTED → ACTIVE).
-  const PathStatus = z.object({ status: z.enum(['COMMITTED', 'ACTIVE']) }).strict();
+  const PathStatus = z.object({ status: z.enum(['COMMITTED', 'ACTIVE']), ...PathDetail }).strict();
   app.post('/api/projects/:esh/pathways/:pid/advance', wrap(async (req, me) => {
     const b = PathStatus.parse(req.body);
     return db.transaction(async tx => {
-      const p = await projectByEsh(tx, (req.params as any).esh); requireEdit(me, p);
+      const p = await projectByEsh(tx, (req.params as any).esh);
+      await requireSponsor(tx, me, p);
       const t = (await tx.query<any>('SELECT * FROM transition_pathway WHERE id=$1 AND project_id=$2', [Number((req.params as any).pid), p.id])).rows[0];
       if (!t) throw new HttpError(404, 'No such pathway');
       const order = ['DECLARED', 'COMMITTED', 'ACTIVE'];
       if (order.indexOf(b.status) !== order.indexOf(t.status) + 1) throw new HttpError(409, `Pathway is ${t.status}; can only advance one step (rule R6: committed declarations are locked)`);
-      await tx.query('UPDATE transition_pathway SET status=$2, committed_at=coalesce(committed_at, CASE WHEN $2=\'COMMITTED\' THEN $3::date END) WHERE id=$1', [t.id, b.status, today()]);
-      await audit(tx, me.name, 'project', p.esh_id, 'PATHWAY_ADVANCE', { status: t.status }, b);
+      const next = { receiver_org_id: b.receiver_org_id ?? t.receiver_org_id, funding_line: b.funding_line ?? t.funding_line, pom_fy: t.path === 'B_POM' ? b.pom_fy ?? t.pom_fy : null };
+      if (b.status === 'COMMITTED') {
+        const missing = [!next.receiver_org_id && 'a receiving organization', !next.funding_line && 'a funding line', t.path === 'B_POM' && !next.pom_fy && 'a POM year'].filter(Boolean);
+        if (missing.length) throw new HttpError(400, `A commitment needs ${missing.join(', ')}`);
+      }
+      await tx.query(`UPDATE transition_pathway SET status=$2, committed_at=coalesce(committed_at, CASE WHEN $2='COMMITTED' THEN $3::date END),
+        receiver_org_id=$4, funding_line=$5, pom_fy=$6 WHERE id=$1`, [t.id, b.status, today(), next.receiver_org_id, next.funding_line, next.pom_fy]);
+      await audit(tx, me.name, 'project', p.esh_id, 'PATHWAY_ADVANCE', { status: t.status }, { status: b.status, ...next });
+      return { ok: true };
+    });
+  }));
+  // A commitment made before the Hub asked for receiver, line and POM year can have its blanks filled in; filled fields stay locked (R6).
+  app.patch('/api/projects/:esh/pathways/:pid', wrap(async (req, me) => {
+    const b = z.object(PathDetail).strict().parse(req.body);
+    return db.transaction(async tx => {
+      const p = await projectByEsh(tx, (req.params as any).esh);
+      await requireSponsor(tx, me, p);
+      const t = (await tx.query<any>('SELECT * FROM transition_pathway WHERE id=$1 AND project_id=$2', [Number((req.params as any).pid), p.id])).rows[0];
+      if (!t) throw new HttpError(404, 'No such pathway');
+      if (b.pom_fy != null && t.path !== 'B_POM') throw new HttpError(400, 'A POM year applies only to Path B (POM); Path A recovers cost through a WCF rate');
+      const locked = (Object.keys(b) as (keyof typeof b)[]).filter(k => t.status !== 'DECLARED' && t[k] != null && b[k] !== t[k]);
+      if (locked.length) throw new HttpError(409, `Pathway is ${t.status}; ${locked.join(', ')} already committed (rule R6)`);
+      await tx.query('UPDATE transition_pathway SET receiver_org_id=coalesce($2, receiver_org_id), funding_line=coalesce($3, funding_line), pom_fy=coalesce($4, pom_fy) WHERE id=$1',
+        [t.id, b.receiver_org_id ?? null, b.funding_line ?? null, b.pom_fy ?? null]);
+      await audit(tx, me.name, 'project', p.esh_id, 'PATHWAY_DETAIL', { receiver_org_id: t.receiver_org_id, funding_line: t.funding_line, pom_fy: t.pom_fy }, b);
       return { ok: true };
     });
   }));

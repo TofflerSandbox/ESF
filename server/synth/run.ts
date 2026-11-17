@@ -17,6 +17,7 @@ import { CRITERIA, followOns, suggestPhase, type ExitReason } from '../domain.js
 import { seedPeople, removePeople } from './people.js';
 import { seedOps, removeOps } from './ops.js';
 import { seedBenefits, removeBenefits } from './benefits.js';
+import { seedOwnership } from './ownership.js';
 import { rngFor, type R } from './util.js';
 import { fillInventory, inventoryGaps, removeFill } from './fill.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -79,7 +80,9 @@ const EVIDENCE: Record<number, ((x: { sp: string; d: string; r: R }) => string)[
   2: [x => `PRR minutes ${x.d}`, x => `J8 ROI certification memo J8-${x.d.slice(2, 4)}-${x.r.int(100, 480)}`, x => `Transition plan v${x.r.int(1, 3)}.0 declared ${x.d}`,
       x => `Written reaffirmation, ${x.sp}, ${x.d}`, x => `Stakeholder sign-off (J7, J8, RM, J6) ${x.d}`],
   3: [x => `SES funding commitment signed ${x.d}`, x => `Deployment report: ${x.r.int(2, 6)} sites, ${x.r.int(40, 900)} users`, x => `J6 ATO plan approved ${x.d}`,
-      x => `J6 sandbox connectivity test passed ${x.d}`, x => `OGC/J7 bridge eligibility memo ${x.d}`],
+      x => `J6 sandbox connectivity test passed ${x.d}`, x => `OGC/J7 bridge eligibility memo ${x.d}`,
+      x => `Change management statement ${x.d}`,   // ord 6 is J1's (J1_EVIDENCE); kept so ord 7 lines up
+      x => `Pathway committed by ${x.sp}, ${x.d}`],  // ord 7, Hub proposal: rewritten from the pathway in synth/ownership.ts
   4: [x => `Operational acceptance memo — ${x.sp}, ${x.d}`, x => `J7 closeout / novation confirmed ${x.d}`, x => `Funding line active in ${x.sp} execution plan`,
       x => `Quarterly performance review schedule set ${x.d}`, x => `Lessons learned report filed ${x.d}`],
 };
@@ -552,6 +555,7 @@ async function main() {
     await seedPeople(tx, SEED, AS_OF, new Set([...scenarioOf.keys()]));
     await seedOps(tx, SEED, AS_OF);
     await seedBenefits(tx, SEED, AS_OF);
+    await seedOwnership(tx, SEED, AS_OF);
   });
   await closeDb();
 }
