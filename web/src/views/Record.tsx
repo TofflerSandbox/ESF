@@ -5,6 +5,7 @@ import { auditText } from '../auditText';
 import { ProjectDocuments } from './Documents';
 import { HubProposal, SponsorTag } from './Ownership';
 import { ProjectRealization, ProjectValueHistory } from './Realization';
+import { RelatedWork } from './Overlap';
 import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
 
 /** Darker text versions of the status colours, readable on white. */
@@ -135,6 +136,8 @@ export function Record({ esh }: { esh: string }) {
           )}
 
           {p.esf_status === 'AT_SCALE' && <ProjectRealization esh={p.esh_id} />}
+
+          <RelatedWork esh={p.esh_id} />
 
           <Workforce r={r} />
 
@@ -348,7 +351,8 @@ function CriterionRow({ c, canEdit, canClose = canEdit, canWaive = canEdit && !c
       <span className="st" style={{ color: col[0], background: col[1] }}>{c.status}</span>
       <span className="tx">
         <b>{c.ord}. {c.text}{c.non_waivable && <span className="hardtag">NON-WAIVABLE</span>}{c.owner === 'J1' && <span className="j1tag" title="Closed by J1 Human Capital Transformation">J1</span>}
-          {c.owner === 'SPONSOR' && <SponsorTag />}{c.proposal && <HubProposal />}</b>
+          {c.owner === 'SPONSOR' && <SponsorTag />}{c.proposal && <HubProposal />}
+          {c.gate === 0 && c.ord === 5 && <span className="proptag" title="Hub proposal: met only when every likely overlap in the portfolio is linked or dismissed (see Related work)">CHECKED AGAINST THE PORTFOLIO</span>}</b>
         {c.evidence ? <>Evidence: {c.evidence} <span className="muted">· {c.updated_by}</span> <Syn on={c.synthetic} /></>
           : c.owner === 'SPONSOR' ? 'Awaiting the sponsoring organization’s signature.' : 'Awaiting evidence or signature.'}
         {edit && (

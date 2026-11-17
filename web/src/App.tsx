@@ -25,6 +25,7 @@ import { Documents } from './views/Documents';
 import { Tour } from './views/Tour';
 import { Realization } from './views/Realization';
 import { Program, Programs } from './views/Program';
+import { Overlaps } from './views/Overlap';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -67,7 +68,7 @@ const NAV: { g: string; items: NavItem[] }[] = [
   { g: 'Portfolio', items: [
     { h: '', r: 'dash', l: 'Dashboard', i: '▦' }, { h: 'board', r: 'board', l: 'Pipeline', i: '⇶' },
     { h: 'gates', r: 'gates', l: 'Gates', i: '◆' }, { h: 'boards', r: 'boards', l: 'Gate boards', i: '▤' }, { h: 'exits', r: 'exits', l: 'Managed exits', i: '⤫' },
-    { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'programs', r: 'programs', l: 'Programs', i: '▥' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
+    { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'programs', r: 'programs', l: 'Programs', i: '▥' }, { h: 'overlaps', r: 'overlaps', l: 'Overlaps', i: '≈' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
   ] },
   { g: 'Value & funding', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: '$' }, { h: 'realization', r: 'realization', l: 'Realization reviews', i: '↻' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: '⇄' }] },
   { g: 'People', items: [{ h: 'j1', r: 'j1', l: 'Workforce & change', i: '◎' }, { h: 'obligations', r: 'obligations', l: 'Stakeholder obligations', i: '▣' }] },
@@ -109,6 +110,7 @@ export function App() {
   else if (route.startsWith('realization')) view = <Realization />;
   else if (/^program\/[A-Za-z0-9-]+$/.test(route)) view = <Program key={route} code={route.slice(8)} />;
   else if (route.startsWith('programs')) view = <Programs />;
+  else if (route.startsWith('overlaps')) view = <Overlaps />;
   else if (/^gates(\/[0-4])?$/.test(route)) view = <Gates key={route} initial={route.length > 6 ? Number(route.slice(6)) : undefined} />;
   else if (route.startsWith('exits')) view = <Exits />;
   else if (route.startsWith('funding')) view = <Funding />;

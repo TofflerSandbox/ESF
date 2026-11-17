@@ -19,6 +19,7 @@ import { seedOps, removeOps } from './ops.js';
 import { seedBenefits, removeBenefits } from './benefits.js';
 import { seedOwnership } from './ownership.js';
 import { seedRealization, removeRealization } from './realization.js';
+import { seedOverlap, removeOverlap } from './overlap.js';
 import { rngFor, type R } from './util.js';
 import { fillInventory, inventoryGaps, removeFill } from './fill.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -408,6 +409,7 @@ const SCENARIOS: Scenario[] = [
 
 /* ── persistence ── */
 async function removeSynthetic(tx: Transaction) {
+  await removeOverlap(tx);
   await removeRealization(tx);
   await removeBenefits(tx);
   await removeOps(tx);
@@ -559,6 +561,7 @@ async function main() {
     await seedBenefits(tx, SEED, AS_OF);
     await seedOwnership(tx, SEED, AS_OF);
     await seedRealization(tx, SEED, AS_OF);
+    await seedOverlap(tx, SEED, AS_OF);
   });
   await closeDb();
 }

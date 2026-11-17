@@ -12,6 +12,7 @@ import { registerAssist } from './assist.js';
 import { registerRoiAsk } from './roiAsk.js';
 import { registerOwnership } from './ownership.js';
 import { registerPrograms } from './programs.js';
+import { OVERLAP_CRIT, overlapsFor, registerOverlap } from './overlap.js';
 import { onGate4Pass, registerRealization, snapshotValue } from './realization.js';
 import { DOC_TYPES } from './esfContent.js';
 
@@ -306,6 +307,13 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       else if (d.owner === 'J1') requireRole(me, 'J1', 'ADMIN');
       else if (d.owner === 'SPONSOR') await requireSponsor(tx, me, p);
       else requireEdit(me, p);
+      // Hub check on the ESF's "No disqualifying duplication": every strong overlap must be linked or dismissed first
+      if (d.gate === OVERLAP_CRIT.gate && d.ord === OVERLAP_CRIT.ord && b.status === 'MET') {
+        const o = await overlapsFor(tx, p.id);
+        if (o.unresolvedStrong.length) throw new HttpError(409, `Resolve the likely overlaps first (link or dismiss): ${o.unresolvedStrong.map(c => `${c.esh_id} ${c.title}`).join('; ')}`);
+        const resolved = o.candidates.filter(c => c.link);
+        b.evidence = b.evidence?.trim() || `Related-work review in the Hub: ${o.candidates.length} similar project${o.candidates.length === 1 ? '' : 's'} checked, ${resolved.length} linked or dismissed, none disqualifying`;
+      }
       if (d.gate === PATHWAY_CRIT.gate && d.ord === PATHWAY_CRIT.ord && b.status === 'MET') {
         const t = (await tx.query<any>(`SELECT t.*, o.name receiver FROM transition_pathway t LEFT JOIN org o ON o.id = t.receiver_org_id
           WHERE t.project_id=$1 AND t.status IN ('COMMITTED','ACTIVE') AND t.receiver_org_id IS NOT NULL AND t.funding_line IS NOT NULL AND (t.path = 'A_WCF' OR t.pom_fy IS NOT NULL)
@@ -380,6 +388,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   registerRoiAsk(app, db, { wrap });
   registerOwnership(app, db, { wrap });
   registerPrograms(app, db, { wrap, HttpError });
+  registerOverlap(app, db, { wrap, canEdit, projectByEsh, HttpError });
   registerRealization(app, db, { wrap, requireRole, canEdit, projectByEsh, HttpError });
 
   /* ── funding, value case, pathways ── */

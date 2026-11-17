@@ -16,7 +16,7 @@ import { PHASES } from './domain.js';
 type Concept = { name: string; triggers: string[]; terms: [string, number][] };
 const t = (s: string, w = 0.7): [string, number][] => s.split(',').map(x => [x.trim(), w] as [string, number]).filter(x => x[0]);
 
-const CONCEPTS: Concept[] = [
+export const CONCEPTS: Concept[] = [
   { name: 'augmented / virtual reality', triggers: ['augmented reality', 'virtual reality', 'mixed reality', 'extended reality', 'ar', 'vr', 'xr', 'hololens', 'headset', 'immersive', 'metaverse', 'smart glass'],
     terms: [...t('augmented reality, virtual reality, mixed reality, extended reality, ar, vr, xr, hololens, headset, immersive, smart glass, head mounted, remote expert', 0.9), ...t('3d visualization, digital twin, remote inspection', 0.4)] },
   { name: 'inventory management', triggers: ['inventory', 'stock', 'stockage', 'cycle count', 'replenishment'],
@@ -69,15 +69,15 @@ const CONCEPTS: Concept[] = [
     terms: t('maintenance, repair, condition based, cbm, prognostic, overhaul, predictive maintenance', 0.85) },
 ];
 
-const STOP = new Set(('a an and or the is are was were be been being there here anything something any all some what whats which who whom whose where when why how '
+export const STOP = new Set(('a an and or the is are was were be been being there here anything something any all some what whats which who whom whose where when why how '
   + 'have has had do does did done doing we our us you your i me my it its this that these those to of in on at for with about from by as into over under '
   + 'portfolio project projects effort efforts work working worked deal deals dealing related relating relate regarding around involve involves involving '
   + 'show find list give tell see want looking look can could would should please let lets get got ever currently current today also just only more most '
   + 'many much number other else like such kind type sort stuff thing things anyone someone dla r d rd hub esf exist exists existing').split(/\s+/));
 /** Words that say little on their own: kept, but at low weight. */
-const GENERIC = new Set('part parts item items material materials management manage system technology technologies capability solution tool process improvement program support development study new use using based enterprise logistics defense agency'.split(' '));
+export const GENERIC = new Set('part parts item items material materials management manage system technology technologies capability solution tool process improvement program support development study new use using based enterprise logistics defense agency'.split(' '));
 
-const stem = (w: string) => {
+export const stem = (w: string) => {
   if (w.length <= 3) return w;
   if (w.endsWith('ies') && w.length > 4) return w.slice(0, -3) + 'y';
   if (w.endsWith('ing') && w.length > 5) return w.slice(0, -3);
@@ -85,8 +85,8 @@ const stem = (w: string) => {
   if (w.endsWith('s') && !w.endsWith('ss') && !w.endsWith('us') && !w.endsWith('is')) return w.slice(0, -1);
   return w;
 };
-const toks = (s: string) => (s.toLowerCase().replace(/[’']/g, '').match(/[a-z0-9]+/g) ?? []).map(stem);
-const norm = (s: string) => ' ' + toks(s).join(' ') + ' ';
+export const toks = (s: string) => (s.toLowerCase().replace(/[’']/g, '').match(/[a-z0-9]+/g) ?? []).map(stem);
+export const norm = (s: string) => ' ' + toks(s).join(' ') + ' ';
 const count = (hay: string, needle: string) => { let n = 0, i = hay.indexOf(needle); while (i >= 0) { n++; i = hay.indexOf(needle, i + 1); } return n; };
 
 const ROMAN: Record<string, number> = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, i: 1, ii: 2, iii: 3, iv: 4, v: 5 };

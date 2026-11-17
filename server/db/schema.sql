@@ -495,3 +495,19 @@ CREATE TABLE IF NOT EXISTS realization_action (
   done_on date,
   synthetic boolean NOT NULL DEFAULT false
 );
+
+-- ───────────── duplication and lineage (Release C) ─────────────
+-- How two projects relate: FOLLOW_ON (a = predecessor, b = successor), DUPLICATE (the same effort recorded twice),
+-- RELATED (overlapping work, distinct efforts), NOT_RELATED (a similarity flag reviewed and dismissed).
+CREATE TABLE IF NOT EXISTS project_link (
+  id serial PRIMARY KEY,
+  a_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  b_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('FOLLOW_ON','DUPLICATE','RELATED','NOT_RELATED')),
+  note text,
+  created_by text NOT NULL,
+  created_at date NOT NULL DEFAULT CURRENT_DATE,
+  synthetic boolean NOT NULL DEFAULT false,
+  CHECK (a_id <> b_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS project_link_pair ON project_link (LEAST(a_id, b_id), GREATEST(a_id, b_id));
