@@ -45,9 +45,16 @@ Put customer-specific settings in `esh.config.local.json`, which is git-ignored 
 |---|---|
 | **Dashboard** | Portfolio KPIs, status by data call, ESF phase mix, program and priority heat map, attention and decision queues |
 | **Pipeline** | Board by ESF phase with search; each phase opens its own dashboard (metrics, gate readiness, full project list) |
-| **Projects** | Searchable, filterable list; each project record has gate scorecard, value case, funding, pathways, points of contact, workforce impact, history and audit trail, plus a printable decision brief |
+| **Projects** | Searchable, filterable list with an *Ask the portfolio* sidebar: plain-English questions ("anything on augmented reality?", "additive manufacturing in Phase II") answered by a local concept search with ranked, explained matches. It runs on the machine; no project data is sent out. Each project record has gate scorecard, value case, funding, pathways, points of contact, workforce impact, history and audit trail, plus a printable decision brief |
 | **Organizations** | One page per organization (same layout for all): live projects by role, phase and program, R&D focal points, project POCs |
 | **Workforce & change** | Changes coming to the workforce, the change-management role at each gate, aggregate leader readiness (Kotter's 8 Accelerators) with CSV export, adoption after go-live |
+| **Return on investment** | Two lenses. *Prospective*: the active portfolio's risk-adjusted projected return. *Realized*: projects in the enterprise tracked against the value case frozen at Gate 4 (monthly sponsor reports, J8-validated quarterly; share of plan, back per dollar, payback, who has stopped reporting). An *Ask about ROI* bar answers plain-English questions across both, locally |
+| **Senior leader decisions** | The 11 SES/GOFO policy decisions from the ESF guide, with options, stakes, owner and status; record the decision when made |
+| **Gates / Gate boards** | Gate analysis, plus running the boards themselves: schedule a board, auto-build the docket from ready projects, decide in the meeting with every gate rule enforced, minutes, actions, a printable briefing book |
+| **Funding & transition** | Path A (WCF) vs Path B (POM), the POM-window countdown with Path B projects that must clear PRR first, WCF rate status, funding by year, and a fiscal-law risk register |
+| **Stakeholder obligations** | The ESF obligation matrix (who owes what at each gate), tracked live against every project, with co-sponsor accountability by organization |
+| **Data call** | The annual data call run in the Hub: PMs update and submit, J68 approves or returns, closing the call publishes approved updates as that year's data |
+| **Documents** | Required documents by gate, filed against the criterion they close; upload on any project (10 MB, stored under `data/files`), completeness check for passed gates |
 | **Administration** | *Phase review*: onboarding queue to confirm imported projects' phases (admin). *Audit log*: append-only record of every change (admin, gate authority) |
 
 ### Roles (stand-in for single sign-on groups; switch with "Acting as")

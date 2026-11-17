@@ -3,7 +3,14 @@ import type { PGlite, Transaction } from '@electric-sql/pglite';
 import { z } from 'zod';
 import { audit } from './db/db.js';
 import { AS_OF } from './config.js';
-import { KOTTER, PHASES, STATUS_LABEL } from './domain.js';
+import { EXIT_REASONS, KOTTER, PHASES, STATUS_LABEL, TECH_RESULTS } from './domain.js';
+import { healthData, homeData } from './home.js';
+import { roiData } from './roi.js';
+import { exitsData, gatesData } from './analysis.js';
+import { registerOps } from './ops.js';
+import { registerAssist } from './assist.js';
+import { registerRoiAsk } from './roiAsk.js';
+import { DOC_TYPES } from './esfContent.js';
 
 type User = { id: number; name: string; role: 'ADMIN' | 'PM' | 'AUTHORITY' | 'VIEWER' | 'J1'; person_id: number | null };
 
@@ -17,7 +24,8 @@ async function kotterAggregate(db: PGlite) {
 }
 type Q = PGlite | Transaction;
 
-class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
+export class HttpError extends Error { constructor(public status: number, msg: string) { super(msg); } }
+export type { User };
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function registerApi(app: FastifyInstance, db: PGlite) {
@@ -43,7 +51,8 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       req.log.error(e); return reply.code(500).send({ error: String((e as Error).message ?? e) });
     }
   };
-  const latestFy = async () => (await db.query<{ fy: number }>('SELECT max(fy) fy FROM data_call')).rows[0].fy;
+  /** The latest data call with reported data — an open call in the Hub doesn't count until it closes. */
+  const latestFy = async () => (await db.query<{ fy: number }>(`SELECT max(fy) fy FROM data_call WHERE status = 'CLOSED'`)).rows[0].fy;
 
   /* ── meta ── */
   app.get('/api/meta', wrap(async (_req, me) => {
@@ -55,7 +64,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       db.query('SELECT pe.id, pe.name, count(p.id)::int n FROM person pe JOIN project p ON p.pm_id = pe.id GROUP BY pe.id ORDER BY pe.name'),
       db.query('SELECT * FROM criterion_def ORDER BY gate, ord'),
       db.query('SELECT id, fy, owner, label, ord FROM priority ORDER BY fy, ord'),
-      db.query('SELECT fy, name, status FROM data_call ORDER BY fy'),
+      db.query(`SELECT fy, name, status FROM data_call WHERE status = 'CLOSED' ORDER BY fy`),
       db.query('SELECT at, report->\'totals\' totals FROM import_run ORDER BY id DESC LIMIT 1'),
       db.query<{ n: number }>('SELECT count(*)::int n FROM project WHERE esf_synthetic'),
       db.query('SELECT s.ord, s.esh_id, s.title, s.story, s.look_for, s.track, p.title AS project_title FROM demo_scenario s JOIN project p ON p.esh_id = s.esh_id ORDER BY s.ord'),
@@ -63,7 +72,8 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
     return { me, latestFy: fy, asOf: AS_OF.toISOString().slice(0, 10), phases: PHASES, statusLabels: STATUS_LABEL,
       users: users.rows, elements: elements.rows, programs: programs.rows, pms: pms.rows, criteria: criteria.rows,
       priorities: priorities.rows, fys: fys.rows, lastImport: lastImport.rows[0] ?? null,
-      synthetic: { projects: synthetic.rows[0].n }, scenarios: scenarios.rows, kotter: KOTTER,
+      synthetic: { projects: synthetic.rows[0].n }, scenarios: scenarios.rows, kotter: KOTTER, exitReasons: EXIT_REASONS, techResults: TECH_RESULTS, docTypes: DOC_TYPES,
+      openDataCall: (await db.query<any>(`SELECT fy, due_at FROM data_call WHERE status = 'OPEN' LIMIT 1`)).rows[0] ?? null,
       unconfirmed: (await db.query<{ n: number }>(`SELECT count(*)::int n FROM project WHERE esf_source = 'SUGGESTED'`)).rows[0].n };
   }));
 
@@ -112,6 +122,18 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
     const alertCounts = Object.fromEntries(order.map(t => [t, alerts.filter(a => a.tag === t).length]));
     return { fy, asOf, byYear, byStatus, byElement, byProgram, byTransition, esf, triage, heat, topPriorities, alerts, alertCounts, ready };
   }));
+
+  /* ── director's home and data health ── */
+  app.get('/api/home', wrap(async req => {
+    const fy = Number((req.query as any).fy) || await latestFy();
+    const [home, health] = await Promise.all([homeData(db, fy, await readyProjects(db)), healthData(db, fy)]);
+    // one definition of data health: the Data health page's
+    return { ...home, health: { score: health.score, live: health.live, clean: health.clean, flagged: health.projects.length, filledProjects: home.health.filledProjects } };
+  }));
+  app.get('/api/exits', wrap(async () => exitsData(db)));
+  app.get('/api/gates', wrap(async () => gatesData(db)));
+  app.get('/api/roi', wrap(async req => roiData(db, Math.min(10, Math.max(1, Number((req.query as any).horizon) || 5)))));
+  app.get('/api/health', wrap(async req => healthData(db, Number((req.query as any).fy) || await latestFy())));
 
   /* ── phase dashboard: every project in one ESF phase + phase metrics ── */
   app.get('/api/phase/:ph', wrap(async req => {
@@ -202,16 +224,18 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       q('SELECT * FROM transition_pathway WHERE project_id=$1 ORDER BY id'),
       db.query<any>('SELECT * FROM audit_event WHERE entity=\'project\' AND entity_id=$1 ORDER BY at DESC, id DESC LIMIT 50', [p.esh_id]).then(r => r.rows),
     ]);
-    const [impacts, adoption, contacts, fills] = await Promise.all([
+    const [impacts, adoption, contacts, fills, documents] = await Promise.all([
       q('SELECT * FROM workforce_impact WHERE project_id=$1 ORDER BY headcount DESC'),
       q('SELECT day, adoption_pct, synthetic FROM adoption_measure WHERE project_id=$1 ORDER BY day'),
       q(`SELECT pc.role, op.name, op.title, op.office, op.email, op.phone, op.focal_rank, op.synthetic, o.id org_id, o.name org
          FROM project_contact pc JOIN org_person op ON op.id = pc.org_person_id JOIN org o ON o.id = op.org_id
          WHERE pc.project_id=$1 ORDER BY CASE pc.role WHEN 'SPONSOR' THEN 0 WHEN 'CO_SPONSOR' THEN 1 WHEN 'TRANSITION_PARTNER' THEN 2 ELSE 3 END, o.name`),
       q('SELECT field FROM project_fill WHERE project_id=$1 ORDER BY field').then(rs => rs.map((x: any) => x.field)),
+      q(`SELECT id, doc_type, title, criterion_id, file_name, size, uploaded_by, uploaded_at, synthetic, (storage_key IS NOT NULL) has_file
+         FROM document WHERE project_id=$1 ORDER BY uploaded_at DESC`),
     ]);
     const workforce = { impacts, adoption };
-    return { project: p, pm, orgs, ext, contracts, snapshots, priorities, phases, gates, criteria, funding, values, paths, audit: auditRows, workforce, contacts, fills,
+    return { project: p, pm, orgs, ext, contracts, snapshots, priorities, phases, gates, criteria, funding, values, paths, audit: auditRows, workforce, contacts, fills, documents,
       canEdit: canEdit(me, p), canJ1: me.role === 'J1' || me.role === 'ADMIN', canDecide: me.role === 'ADMIN' || me.role === 'AUTHORITY', canTriage: me.role === 'ADMIN' };
   }));
 
@@ -281,12 +305,21 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   }));
 
   /* ── gate decision ── */
-  const Gate = z.object({ outcome: z.enum(['PASS', 'SUNSET', 'DESCOPE', 'HOLD']), rationale: z.string().min(3).max(4000), decided_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).strict();
+  const Gate = z.object({
+    outcome: z.enum(['PASS', 'SUNSET', 'DESCOPE', 'HOLD']), rationale: z.string().min(3).max(4000), decided_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    // why it stopped — required for SUNSET / DESCOPE so exits can be analysed
+    exit_reason: z.enum(Object.keys(EXIT_REASONS) as [keyof typeof EXIT_REASONS]).optional(),
+    technical_result: z.enum(['MET', 'PARTIAL', 'NOT_MET']).optional(),
+  }).strict();
   app.post('/api/projects/:esh/gates', wrap(async (req, me) => {
     requireRole(me, 'AUTHORITY', 'ADMIN');
     const b = Gate.parse(req.body);
-    return db.transaction(async tx => {
-      const p = await projectByEsh(tx, (req.params as any).esh);
+    return db.transaction(async tx => recordGate(tx, me, await projectByEsh(tx, (req.params as any).esh), b));
+  }));
+
+  /** Record a gate decision with every rule enforced. Shared by the project page and gate boards. */
+  async function recordGate(tx: Q, me: User, p: Record<string, any>, b: z.infer<typeof Gate>) {
+    {
       if (p.esf_source !== 'CONFIRMED') throw new HttpError(409, 'Confirm the project\'s ESF phase (triage) before recording a gate decision');
       if (!['ACTIVE', 'HOLD'].includes(p.esf_status)) throw new HttpError(409, `Project is ${p.esf_status}; no gate pending`);
       const gate = Math.min(p.esf_phase, 4);
@@ -296,9 +329,11 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
         const open = crit.filter(c => c.status === 'PENDING' || (c.non_waivable && c.status !== 'MET'));
         if (open.length) throw new HttpError(409, `Cannot PASS Gate ${gate}: open criteria — ${open.map(c => c.text).join('; ')}`);
       }
+      const stop = b.outcome === 'SUNSET' || b.outcome === 'DESCOPE';
+      if (stop && (!b.exit_reason || !b.technical_result)) throw new HttpError(400, 'A sunset or descope needs a reason and a technical result, so exits can be analysed');
       const date = b.decided_at ?? today();
-      await tx.query('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-        [p.id, gate, b.outcome, date, me.role === 'AUTHORITY' ? me.name : 'Recorded by admin', b.rationale, me.name]);
+      await tx.query('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by, exit_reason, technical_result) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [p.id, gate, b.outcome, date, me.role === 'AUTHORITY' ? me.name : 'Recorded by admin', b.rationale, me.name, stop ? b.exit_reason : null, stop ? b.technical_result : null]);
       let phase = p.esf_phase, status = p.esf_status;
       if (b.outcome === 'PASS') {
         phase = gate + 1; status = phase === 5 ? 'AT_SCALE' : 'ACTIVE';
@@ -312,9 +347,13 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       }
       await tx.query('UPDATE project SET esf_phase=$2, esf_status=$3, updated_at=now() WHERE id=$1', [p.id, phase, status]);
       await audit(tx, me.name, 'project', p.esh_id, 'GATE_DECISION', { esf_phase: p.esf_phase, esf_status: p.esf_status }, { gate, ...b, esf_phase: phase, esf_status: status });
-      return { ok: true, phase, status };
-    });
-  }));
+      return { ok: true, gate, phase, status };
+    }
+  }
+
+  registerOps(app, db, { wrap, requireRole, requireEdit, canEdit, projectByEsh, recordGate, Gate, HttpError, latestFy });
+  registerAssist(app, db, { wrap });
+  registerRoiAsk(app, db, { wrap });
 
   /* ── funding, value case, pathways ── */
   const Funding = z.object({ fy: z.number().int().min(2015).max(2040), appropriation: z.enum(['RDT&E BA3', 'RDT&E BA6', 'O&M', 'WCF', 'Procurement']),

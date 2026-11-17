@@ -2,7 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { auditText } from '../auditText';
-import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_SHORT, PhaseChip, ROLE_LABEL, STATUS, StatusChip, Syn, VP, d10, money, sup, useAsync } from '../ui';
+import { ProjectDocuments } from './Documents';
+import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
+
+/** Darker text versions of the status colours, readable on white. */
+const STATUS_COL_TXT: Record<string, string> = { ...STATUS_COL, '?': 'var(--slate2)' };
 
 const FILL_LABEL: Record<string, string> = {
   status_code: 'status', pop_start: 'PoP start', pop_end: 'PoP end', description: 'description', program_code: 'program', element_code: 'element',
@@ -33,19 +37,45 @@ export function Record({ esh }: { esh: string }) {
     !p.transition_type && 'transition type', !r.contracts.length && 'contract number',
   ].filter(Boolean) as string[];
   const filled = new Set<string>(r.fills);
+  const exited = p.esf_status === 'SUNSET' || p.esf_status === 'DESCOPED';
+  const phIdx = p.esf_status === 'AT_SCALE' ? 5 : p.esf_phase ?? 0;
+  const phCol = exited ? '#5E5A55' : PH_COL[phIdx];
+  const sponsors = r.orgs.filter((o: any) => o.role === 'SPONSOR');
+  const primary = r.values.find((v: any) => v.is_primary) ?? r.values[0];
   const F = (...fields: string[]) => (fields.some(f => filled.has(f)) ? <Syn /> : null);
 
   return (
     <>
       <a className="bk" href="#/projects">← Projects</a>
-      <div className="rhead">
-        <div>
+      <div className="rhead" style={{ ['--ph' as any]: phCol }}>
+        <div style={{ minWidth: 0 }}>
           <div className="code">{p.esh_id} · {program ? `${program.name} (${program.code})` : p.program_code ?? 'No program'} · {p.element_code ?? '—'} · in data calls {r.snapshots.map((s: any) => 'FY' + String(s.fy).slice(2)).join(', ')}</div>
           <h2>{p.title}</h2>
-          <div className="chips">
-            <StatusChip s={p.status_code} /><PhaseChip p={p} /><Syn on={p.esf_synthetic} />
-            {r.orgs.filter((o: any) => o.role === 'SPONSOR').map((o: any) => <a key={o.id} href={'#/org/' + o.id} className="chip" style={{ color: 'var(--spon)', background: 'var(--sponBg)' }}>{o.name}{o.synthetic && <span className="synmini" title="Synthetic: filled because the data call left it blank">S</span>}</a>)}
-            {r.values.map((v: any) => <Chip key={v.id} c={VP[v.path].c}>{VP[v.path].l}{v.is_primary && r.values.length > 1 ? ' · primary' : ''}</Chip>)}
+          <div className="facts">
+            <a className="fact phase" href={exited ? '#/exits' : '#/phase/' + phIdx} title={p.esf_source === 'SUGGESTED' ? 'Suggested from workbook data — not yet confirmed' : 'Open this phase'}
+              style={{ background: phCol, color: phIdx === 5 && !exited ? '#16233C' : '#fff' }}>
+              <span className="fl">ESF phase{p.esf_source === 'SUGGESTED' ? ' · suggested' : ''}</span>
+              <span className="fv">{exited ? `${p.esf_status === 'SUNSET' ? 'Sunset' : 'Descoped'} at ${PH_SHORT[phIdx]}` : PH_SHORT[phIdx]}{p.esf_status === 'HOLD' ? ' · on hold' : ''}</span>
+              <span className="fs">{exited ? 'Managed exit' : PH_NAME[phIdx]}</span>
+            </a>
+            <div className="fact sponsor">
+              <span className="fl">Sponsor{sponsors.length > 1 ? 's' : ''}</span>
+              <span className="fv">{sponsors.length ? sponsors.map((o: any, i: number) => <span key={o.id}>{i > 0 && <span className="sep"> · </span>}<a href={'#/org/' + o.id}>{o.name}</a>{o.synthetic && <span className="synmini" title="Synthetic: filled because the data call left it blank">S</span>}</span>) : <span className="muted">Not named</span>}</span>
+              <span className="fs">Owns the problem and the transition</span>
+            </div>
+            {primary && (
+              <a className="fact value" href="#/roi" style={{ ['--vc' as any]: VALUE_PATH[primary.path].c }}>
+                <span className="fl">Value path</span>
+                <span className="fv">{VALUE_PATH[primary.path].l}</span>
+                <span className="fs">{primary.annual_value ? `${money(primary.annual_value)} a year` : 'Not quantified'}{primary.j8_certified ? ' · J8 certified' : ''}</span>
+              </a>
+            )}
+            <div className="fact plain">
+              <span className="fl">Data-call status</span>
+              <span className="fv" style={{ color: STATUS_COL_TXT[p.status_code ?? '?'] }}>{p.status_code ? STATUS[p.status_code] : 'Not reported'}</span>
+              <span className="fs">{p.pop_end ? `Contract ends ${d10(p.pop_end)}` : 'No contract end date'}</span>
+            </div>
+            {p.esf_synthetic && <Syn />}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -151,6 +181,8 @@ export function Record({ esh }: { esh: string }) {
             </div>
             {r.contacts.length === 0 && <div className="note">No sponsor or transition partner was reported in the data call, so there is no one to list.</div>}
           </Card>
+
+          <ProjectDocuments r={r} onChange={(t, ok = true) => { setMsg({ ok, t }); if (ok) reload(); }} />
 
           <Card title="Organizations">
             {Object.keys(ROLE_L).map(role => {
@@ -296,15 +328,21 @@ function CriterionRow({ c, canEdit, onSave }: { c: any; canEdit: boolean; onSave
 }
 
 function GateForm({ gate, onSave }: { gate: number; onSave: (b: any) => Promise<boolean> }) {
+  const meta = useMeta();
   const [outcome, setOutcome] = useState('PASS');
   const [rationale, setRationale] = useState('');
+  const [reason, setReason] = useState('');
+  const [tech, setTech] = useState('');
+  const stop = outcome === 'SUNSET' || outcome === 'DESCOPE';
   return (
     <div className="decide">
       <div className="lbl">Record Gate {gate} decision</div>
       <div className="inline-form">
         <select value={outcome} onChange={e => setOutcome(e.target.value)}>{['PASS', 'HOLD', 'DESCOPE', 'SUNSET'].map(s => <option key={s}>{s}</option>)}</select>
+        {stop && <select value={reason} onChange={e => setReason(e.target.value)} aria-label="Why it stopped"><option value="">Why it stopped…</option>{Object.entries(meta.exitReasons).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
+        {stop && <select value={tech} onChange={e => setTech(e.target.value)} aria-label="Technical result"><option value="">Did it work technically?…</option>{Object.entries(meta.techResults).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}
         <input placeholder="Rationale (required)" value={rationale} onChange={e => setRationale(e.target.value)} />
-        <button className="btn sm" onClick={async () => { if (await onSave({ outcome, rationale })) setRationale(''); }}>Record decision</button>
+        <button className="btn sm" onClick={async () => { if (await onSave({ outcome, rationale, ...(stop ? { exit_reason: reason || undefined, technical_result: tech || undefined } : {}) })) setRationale(''); }}>Record decision</button>
       </div>
     </div>
   );

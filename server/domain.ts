@@ -24,6 +24,54 @@ export const CRITERIA: Record<number, { t: string; hard?: boolean; owner?: 'J68'
       { t: 'Workforce absorption confirmed (J1)', owner: 'J1' }],
 };
 
+/** The five gates: the question each answers, who decides, and the move it controls (from the ESF process map). */
+export const GATES = [
+  { gate: 0, name: 'Gate 0 — Intake', question: 'Is there a real DLA problem and a committed co-sponsor?', authority: 'J68 Director', from: 0, to: 1 },
+  { gate: 1, name: 'Gate 1 — Feasibility', question: 'Is it technically feasible and is the value hypothesis real?', authority: 'J68 Director + SES co-sponsor', from: 1, to: 2 },
+  { gate: 2, name: 'Gate 2 — Prototype', question: 'Does the prototype work, and is the ROI certified with a named funding path?', authority: 'J68 Director + J8 Finance', from: 2, to: 3 },
+  { gate: 3, name: 'Gate 3 — Funding commitment', question: 'Will an SES sign to fund deployment, and is it ready to run on DLA systems?', authority: 'SES / GOFO (DCG)', from: 3, to: 4 },
+  { gate: 4, name: 'Gate 4 — Enterprise handoff', question: 'Has the operational owner accepted it, with funding running and J68 money closed out?', authority: 'Operational owner + DCG', from: 4, to: 5 },
+] as const;
+
+/** Why a project left the pipeline before scale. Recorded with each SUNSET / DESCOPE gate decision. */
+export const EXIT_REASONS = {
+  FOLLOW_ON: 'Continued under a follow-on project',
+  KNOWLEDGE: 'Delivered a report or knowledge product',
+  NO_OWNER: 'Worked, but no owner to take it on',
+  VALUE: 'Value not proven on DLA data',
+  TECHNICAL: 'Technical results fell short',
+  SPONSOR: 'Sponsor withdrew or priorities changed',
+  SUPERSEDED: 'Overtaken by another program or commercial product',
+} as const;
+export type ExitReason = keyof typeof EXIT_REASONS;
+export const TECH_RESULTS = { MET: 'Worked technically', PARTIAL: 'Partly worked', NOT_MET: 'Did not work technically' } as const;
+
+/** A title with phase / program words stripped, so successive phases of one effort match
+    ("Bipolar 6TAGM batteries Phase I" ≈ "Bipolar 6TAGM batteries Phase II"). */
+export function titleStem(t: string) {
+  const s = t.toLowerCase().replace(/\(.*?\)/g, ' ')
+    .replace(/\b(sbir|sttr|phase\s*(iii|ii|i|iv|[1-4])|pilot|study|feasibility|prototype|follow[- ]on|continuation|part\s*\d+|year\s*\d+)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(w => w.length > 1);
+  return s.slice(0, 6).join(' ');
+}
+
+const phaseNum = (t: string) => { const m = t.toLowerCase().match(/phase\s*(iii|ii|i|[1-3])\b/); return m ? ({ i: 1, ii: 2, iii: 3 } as Record<string, number>)[m[1]] ?? Number(m[1]) : 0; };
+/** For each project, the later projects that continue the same effort: same title stem, and either a
+    later first data call or a higher phase numeral in the title. Derived from real titles only. */
+export function followOns<T extends { id: number; title: string; first_fy: number }>(ps: T[]) {
+  const byStem = new Map<string, T[]>();
+  for (const p of ps) { const s = titleStem(p.title); if (s.split(' ').length < 2) continue; byStem.set(s, [...(byStem.get(s) ?? []), p]); }
+  const out = new Map<number, T[]>();
+  for (const group of byStem.values()) {
+    if (group.length < 2) continue;
+    for (const p of group) {
+      const later = group.filter(o => o.id !== p.id && (o.first_fy > p.first_fy || (phaseNum(p.title) > 0 && phaseNum(o.title) > phaseNum(p.title))));
+      if (later.length) out.set(p.id, later);
+    }
+  }
+  return out;
+}
+
 /** Kotter's 8 Accelerators — adopted by the DLA SES Executive Board for senior leader accountability. */
 export const KOTTER = [
   'Create a sense of urgency', 'Build a guiding coalition', 'Form a strategic vision and initiatives', 'Enlist a volunteer army',

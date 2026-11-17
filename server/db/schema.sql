@@ -233,6 +233,89 @@ CREATE TABLE IF NOT EXISTS demo_scenario (
 
 ALTER TABLE demo_scenario ADD COLUMN IF NOT EXISTS track text NOT NULL DEFAULT 'ESF';   -- ESF | J1
 
+-- Why a project stopped (SUNSET / DESCOPE decisions): a reason category and whether it worked technically.
+ALTER TABLE gate_decision ADD COLUMN IF NOT EXISTS exit_reason text;        -- see EXIT_REASONS in domain.ts
+ALTER TABLE gate_decision ADD COLUMN IF NOT EXISTS technical_result text;   -- MET | PARTIAL | NOT_MET
+
+-- ───────────── data call run in the Hub ─────────────
+ALTER TABLE data_call ADD COLUMN IF NOT EXISTS opens_at date;
+ALTER TABLE data_call ADD COLUMN IF NOT EXISTS due_at date;
+ALTER TABLE data_call ADD COLUMN IF NOT EXISTS closed_at date;
+ALTER TABLE data_call ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'WORKBOOK';   -- WORKBOOK | HUB
+ALTER TABLE data_call ADD COLUMN IF NOT EXISTS synthetic boolean NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS data_call_response (
+  fy int NOT NULL REFERENCES data_call(fy) ON DELETE CASCADE,
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'NOT_STARTED' CHECK (status IN ('NOT_STARTED','IN_PROGRESS','SUBMITTED','APPROVED','RETURNED')),
+  payload jsonb NOT NULL DEFAULT '{}',   -- the PM's proposed values
+  baseline jsonb NOT NULL DEFAULT '{}',  -- values when the call opened
+  note text,                             -- reviewer's note when returned
+  updated_by text, updated_at timestamptz,
+  submitted_at timestamptz, reviewed_by text, reviewed_at timestamptz,
+  synthetic boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (fy, project_id)
+);
+
+-- ───────────── gate boards ─────────────
+CREATE TABLE IF NOT EXISTS gate_board (
+  id serial PRIMARY KEY,
+  title text NOT NULL,
+  board_date date NOT NULL,
+  authority text NOT NULL,
+  location text,
+  status text NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED','HELD','CANCELLED')),
+  minutes text,
+  synthetic boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS gate_board_item (
+  board_id int NOT NULL REFERENCES gate_board(id) ON DELETE CASCADE,
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  gate int NOT NULL,
+  ord int NOT NULL,
+  outcome text,                          -- filled when decided in the meeting
+  note text,
+  PRIMARY KEY (board_id, project_id)
+);
+CREATE TABLE IF NOT EXISTS gate_board_action (
+  id serial PRIMARY KEY,
+  board_id int NOT NULL REFERENCES gate_board(id) ON DELETE CASCADE,
+  project_id int REFERENCES project(id) ON DELETE CASCADE,
+  text text NOT NULL,
+  owner text NOT NULL,
+  due date,
+  done boolean NOT NULL DEFAULT false
+);
+
+-- ───────────── senior leader decisions (ESF guide) ─────────────
+CREATE TABLE IF NOT EXISTS senior_decision (
+  ord int PRIMARY KEY,
+  status text NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_REVIEW','DECIDED','DEFERRED')),
+  owner text,
+  due date,
+  decided_option text,
+  decided_at date,
+  rationale text,
+  updated_by text, updated_at timestamptz,
+  synthetic boolean NOT NULL DEFAULT false
+);
+
+-- ───────────── documents & evidence ─────────────
+CREATE TABLE IF NOT EXISTS document (
+  id serial PRIMARY KEY,
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  doc_type text NOT NULL,
+  title text NOT NULL,
+  criterion_id int REFERENCES criterion_def(id),
+  file_name text,
+  mime text,
+  size int,
+  storage_key text,                      -- file under data/files; null = record only
+  uploaded_by text NOT NULL,
+  uploaded_at timestamptz NOT NULL DEFAULT now(),
+  synthetic boolean NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS document_project ON document(project_id);
+
 -- Gaps in the real inventory filled with synthetic values: one row per filled field, so the UI can tag it
 -- and `npm run synth -- --remove` can put the blank back. Relationship fills carry their own synthetic flag.
 CREATE TABLE IF NOT EXISTS project_fill (
@@ -302,6 +385,29 @@ CREATE TABLE IF NOT EXISTS adoption_measure (
   adoption_pct int NOT NULL,
   synthetic boolean NOT NULL DEFAULT false,
   PRIMARY KEY (project_id, day)
+);
+
+-- ───────────── realized return, after transition ─────────────
+-- At Gate 4 the value case is frozen as the baseline; each month after, the sponsor reports the benefit
+-- actually delivered and J8 validates it quarterly. Realized ROI = realized benefit to date ÷ everything the project cost.
+CREATE TABLE IF NOT EXISTS benefit_baseline (
+  project_id int PRIMARY KEY REFERENCES project(id) ON DELETE CASCADE,
+  transitioned_on date NOT NULL,         -- the Gate 4 pass
+  annual_value numeric(14,2) NOT NULL,   -- the promise, at full adoption
+  path text NOT NULL,
+  metric text,
+  owner_org_id int REFERENCES org(id),   -- the sponsor who owns reporting
+  synthetic boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS benefit_measure (
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  period date NOT NULL,                  -- first day of the month reported
+  planned numeric(14,2) NOT NULL,        -- the baseline for that month, on the planned adoption ramp
+  realized numeric(14,2) NOT NULL,
+  method text NOT NULL CHECK (method IN ('SYSTEM','SPONSOR','J8')),  -- system data | sponsor estimate | J8 validated
+  note text,
+  synthetic boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (project_id, period)
 );
 
 CREATE TABLE IF NOT EXISTS senior_leader (

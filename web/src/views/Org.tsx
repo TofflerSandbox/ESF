@@ -1,18 +1,26 @@
 import { useState } from 'react';
 import { api } from '../api';
+import { useMeta } from '../App';
+import { useSort } from '../sort';
 import { Bars, Card, EL_COL, ErrorBox, Loading, ORG_KIND, PH_COL, PH_SHORT, PhaseChip, ROLE_LABEL, StatusChip, Syn, d10, go, sup, useAsync } from '../ui';
 
 const ROLE_ORDER = ['SPONSOR', 'STAKEHOLDER', 'TRANSITION_PARTNER', 'ACADEMIA', 'MILITARY', 'OSD_MII', 'VENDOR'];
 
 /** One organization: the same layout for every MSC, J-code, service, university or company. */
 export function Org({ id }: { id: number }) {
+  const meta = useMeta();
   const { data: d, error } = useAsync(() => api(`/orgs/${id}`), [id]);
   const [role, setRole] = useState<string>('');
   const [liveOnly, setLiveOnly] = useState(true);
+  const live = (p: any) => ['ACTIVE', 'HOLD', 'AT_SCALE'].includes(p.esf_status);
+  const progName = (c: string | null) => (c ? meta.programs.find(p => p.code === c)?.name ?? c : '—');
+  const rows = (d?.projects ?? []).filter((p: any) => (!role || p.roles.includes(role)) && (!liveOnly || live(p)));
+  const { sorted, Th } = useSort<any>(rows, { key: 'esh_id' }, {
+    roles: p => [...p.roles].sort((a: string, b: string) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b)).map((r: string) => ROLE_LABEL[r]).join(', '),
+    program: p => progName(p.program_code), phase: p => (p.esf_status === 'AT_SCALE' ? 5 : p.esf_phase), pop_end: p => (p.pop_end ? new Date(p.pop_end).getTime() : null),
+  });
   if (error) return <><a className="bk" href="#/orgs">← Organizations</a><ErrorBox msg={error} /></>;
   if (!d) return <Loading />;
-  const live = (p: any) => ['ACTIVE', 'HOLD', 'AT_SCALE'].includes(p.esf_status);
-  const rows = d.projects.filter((p: any) => (!role || p.roles.includes(role)) && (!liveOnly || live(p)));
   const roles = ROLE_ORDER.filter(r => d.byRole[r].total > 0);
   const liveTotal = d.projects.filter(live).length;
   const pocSyn = d.focal.some((f: any) => f.synthetic) || d.pocs.some((f: any) => f.synthetic);
@@ -69,17 +77,17 @@ export function Org({ id }: { id: number }) {
         </span>}>
         <div style={{ overflowX: 'auto' }}>
           <table className="list flat">
-            <thead><tr><th>ESH ID</th><th>Project</th><th>Role</th><th>Program</th><th>PM</th><th>Status</th><th>ESF</th><th>PoP end</th></tr></thead>
-            <tbody>{rows.map((p: any) => (
+            <thead><tr><Th k="esh_id">ESH ID</Th><Th k="title">Project</Th><Th k="roles">Role</Th><Th k="program">Program</Th><Th k="status_code">Status</Th><Th k="phase">ESF</Th><Th k="pop_end">PoP end</Th></tr></thead>
+            <tbody>{sorted.map((p: any) => (
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
                 <td className="mono code">{p.esh_id}</td><td className="ttl">{p.title}</td>
-                <td className="sm">{p.roles.sort((a: string, b: string) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b)).map((r: string) => ROLE_LABEL[r]).join(', ')}</td>
-                <td className="mono sm">{p.program_code ?? '—'}</td><td className="sm">{p.pm ?? '—'}</td>
+                <td className="sm">{[...p.roles].sort((a: string, b: string) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b)).map((r: string) => ROLE_LABEL[r]).join(', ')}</td>
+                <td className="sm"><b className="mono">{p.program_code ?? '—'}</b> {p.program_code ? <span className="muted">{progName(p.program_code)}</span> : null}</td>
                 <td><StatusChip s={p.status_code} /></td><td><PhaseChip p={p} /></td><td className="mono sm">{d10(p.pop_end)}</td>
               </tr>
             ))}</tbody>
           </table>
-          {!rows.length && <div className="note" style={{ padding: 12 }}>No projects match.</div>}
+          {!sorted.length && <div className="note" style={{ padding: 12 }}>No projects match.</div>}
         </div>
       </Card>
 
@@ -106,9 +114,10 @@ export function Orgs() {
   const { data, error } = useAsync(() => api('/org-index'), []);
   const [q, setQ] = useState('');
   const [kind, setKind] = useState('');
+  const rows = (data?.rows ?? []).filter((o: any) => (!kind || o.kind === kind) && (!q || o.name.toLowerCase().includes(q.toLowerCase())));
+  const { sorted, Th } = useSort<any>(rows, { key: 'live', dir: -1 }, { kind: o => ORG_KIND[o.kind] ?? o.kind });
   if (error) return <ErrorBox msg={error} />;
   if (!data) return <Loading />;
-  const rows = data.rows.filter((o: any) => (!kind || o.kind === kind) && (!q || o.name.toLowerCase().includes(q.toLowerCase())));
   return (
     <>
       <h2 className="vt">Organizations</h2>
@@ -119,8 +128,9 @@ export function Orgs() {
         <span className="cnt">{rows.length} organizations</span>
       </div>
       <table className="list">
-        <thead><tr><th>Organization</th><th>Type</th><th>Live projects</th><th>Sponsor</th><th>Stakeholder</th><th>Transition partner</th><th>All projects</th><th>Focal points</th></tr></thead>
-        <tbody>{rows.map((o: any) => (
+        <thead><tr><Th k="name">Organization</Th><Th k="kind">Type</Th><Th k="live" num>Live projects</Th><Th k="sponsor" num>Sponsor</Th><Th k="stakeholder" num>Stakeholder</Th>
+          <Th k="transition" num>Transition partner</Th><Th k="projects" num>All projects</Th><Th k="focal" num>Focal points</Th></tr></thead>
+        <tbody>{sorted.map((o: any) => (
           <tr key={o.id} onClick={() => go('#/org/' + o.id)}>
             <td className="ttl">{o.name}</td><td className="sm">{ORG_KIND[o.kind] ?? o.kind}</td>
             <td className="mono">{o.live}</td><td className="mono">{o.sponsor || '—'}</td><td className="mono">{o.stakeholder || '—'}</td><td className="mono">{o.transition || '—'}</td>

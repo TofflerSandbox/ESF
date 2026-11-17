@@ -56,7 +56,7 @@ export async function seedPeople(tx: Transaction, seed: number, asOf: Date, scen
       (SELECT max(entered_at) FROM phase_record r WHERE r.project_id = p.id AND r.phase = 5) scale_at
     FROM project p
     WHERE p.esf_status IN ('ACTIVE','HOLD','AT_SCALE')
-      AND p.id IN (SELECT project_id FROM project_snapshot WHERE fy >= (SELECT max(fy) - 1 FROM data_call))
+      AND p.id IN (SELECT project_id FROM project_snapshot WHERE fy >= (SELECT max(fy) - 1 FROM data_call WHERE status = 'CLOSED'))
     ORDER BY p.esh_id`)).rows;
   // the J1 walkthrough project is the one run.ts scripted as the J1 scenario
   const flagshipEsh = (await tx.query<{ esh_id: string }>(`SELECT esh_id FROM demo_scenario WHERE track = 'J1' ORDER BY ord LIMIT 1`)).rows[0]?.esh_id;

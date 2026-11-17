@@ -15,7 +15,9 @@ export const d10 = (s?: string | null) => (s ? String(s).slice(0, 10) : '—');
 export const fmtMY = (s?: string | null) => (s ? new Date(s).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—');
 export const money = (v: number | string | null | undefined) => {
   const n = Number(v ?? 0);
-  return n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : '$' + Math.round(n / 1e3) + 'K';
+  // fewer digits as amounts grow: $1.25M, $12.5M, $311M, $1.21B
+  return n >= 1e9 ? '$' + (n / 1e9).toFixed(2) + 'B' : n >= 1e8 ? '$' + Math.round(n / 1e6) + 'M' : n >= 1e7 ? '$' + (n / 1e6).toFixed(1) + 'M'
+    : n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : '$' + Math.round(n / 1e3) + 'K';
 };
 export const go = (h: string) => { location.hash = h; };
 
@@ -45,6 +47,23 @@ export function PhaseChip({ p }: { p: { esf_phase: number | null; esf_status: st
     <span className="chip" style={{ background: PH_COL[ph] + '14', color: PH_TXT[ph], outline: p.esf_source === 'SUGGESTED' ? `1px dashed ${PH_COL[ph]}88` : undefined }}
       title={p.esf_source === 'SUGGESTED' ? 'Suggested from workbook data — not yet confirmed' : 'Confirmed'}>
       <i style={{ background: PH_COL[ph] }} />{PH_SHORT[ph]}{p.esf_status === 'HOLD' ? ' · HOLD' : ''}{p.esf_source === 'SUGGESTED' ? ' ?' : ''}
+    </span>
+  );
+}
+
+/** A small "?" next to a section title that opens a short primer. Closes on outside click or Escape. */
+export function Help({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => { if (e instanceof KeyboardEvent ? e.key === 'Escape' : !(e.target as HTMLElement).closest('.help')) setOpen(false); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', close);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
+  }, [open]);
+  return (
+    <span className="help">
+      <button type="button" className="help-q" aria-label={`What is “${title}”?`} aria-expanded={open} onClick={e => { e.stopPropagation(); setOpen(!open); }}>?</button>
+      {open && <span className="help-pop" role="dialog" aria-label={title}><b>{title}</b>{children}</span>}
     </span>
   );
 }
@@ -102,8 +121,65 @@ export function Bars({ items, h = 190, fmt = (v: number) => String(v) }: { items
   );
 }
 
+/** The four value paths in friendly words and distinct colours (one quadrant each). */
+export const VALUE_PATH: Record<string, { l: string; c: string; d: string }> = {
+  COST: { l: 'Lower cost', c: '#3F90CB', d: 'Saves money: labor hours, inventory carrying cost, cost per transaction' },
+  PERFORMANCE: { l: 'Better performance', c: '#2F7D5C', d: 'Faster or better outcomes: lead time, backorders, readiness, yield' },
+  RISK: { l: 'Lower risk', c: '#CE0F3E', d: 'Avoids losses: counterfeit parts, supply disruption, single sources' },
+  REVENUE: { l: 'More revenue', c: '#F9B018', d: 'Brings money in: reutilization, resale, cost recovery' },
+};
+
+/** Donut / pie chart. */
+export function Donut({ slices, size = 220, center, sub, onClick }: { slices: { k: string; l: string; v: number; c: string }[]; size?: number; center?: string; sub?: string; onClick?: (k: string) => void }) {
+  const total = slices.reduce((a, s) => a + s.v, 0) || 1, r = size / 2, ir = r * 0.58;
+  let a0 = -Math.PI / 2;
+  const arc = (a1: number, a2: number) => {
+    const large = a2 - a1 > Math.PI ? 1 : 0, p = (rad: number, a: number) => `${r + rad * Math.cos(a)} ${r + rad * Math.sin(a)}`;
+    return `M ${p(r, a1)} A ${r} ${r} 0 ${large} 1 ${p(r, a2)} L ${p(ir, a2)} A ${ir} ${ir} 0 ${large} 0 ${p(ir, a1)} Z`;
+  };
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width="100%" style={{ maxWidth: size }} role="img" aria-label="Donut chart">
+      {slices.filter(s => s.v > 0).map(s => {
+        const a1 = a0, a2 = a0 + 2 * Math.PI * s.v / total - (slices.filter(x => x.v > 0).length > 1 ? 0.012 : 0); a0 += 2 * Math.PI * s.v / total;
+        const mid = (a1 + a2) / 2, pctv = Math.round(100 * s.v / total), lr = (r + ir) / 2;
+        return (
+          <g key={s.k} onClick={onClick ? () => onClick(s.k) : undefined} style={{ cursor: onClick ? 'pointer' : undefined }}>
+            <path d={arc(a1, Math.min(a2, a1 + 2 * Math.PI - 0.001))} fill={s.c}><title>{`${s.l}: ${pctv}%`}</title></path>
+            {pctv >= 6 && <text x={r + lr * Math.cos(mid)} y={r + lr * Math.sin(mid) + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#fff">{pctv}%</text>}
+          </g>
+        );
+      })}
+      {center && <text x={r} y={r + (sub ? 0 : 6)} textAnchor="middle" fontSize={22} fontWeight={700} fontFamily="var(--serif)" fill="var(--navy)">{center}</text>}
+      {sub && <text x={r} y={r + 18} textAnchor="middle" fontSize={10.5} fill="var(--slate)">{sub}</text>}
+    </svg>
+  );
+}
+
+/** Grouped vertical bars: a few series per category. */
+export function GroupBars({ cats, series, h = 260, fmt = (v: number) => String(v), onClick }: { cats: string[]; series: { l: string; c: string; v: number[] }[]; h?: number; fmt?: (v: number) => string; onClick?: (i: number) => void }) {
+  const w = 560, pad = 8, max = Math.max(...series.flatMap(s => s.v), 1), cw = (w - pad) / Math.max(cats.length, 1), bw = cw * 0.72 / series.length;
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 'auto' }}>
+        {[1, 2, 3].map(i => { const yy = h - 30 - (h - 50) * i / 3; return <line key={i} x1={pad} y1={yy} x2={w} y2={yy} stroke="#E7E4DC" />; })}
+        {cats.map((c, i) => (
+          <g key={c} onClick={onClick ? () => onClick(i) : undefined} style={{ cursor: onClick ? 'pointer' : undefined }}>
+            {series.map((s, j) => {
+              const bh = (h - 50) * s.v[i] / max, x = pad + i * cw + cw * 0.14 + j * bw, y = h - 30 - bh;
+              return <g key={s.l}><rect x={x} y={y} width={bw - 2} height={Math.max(bh, 1)} rx={3} fill={s.c}><title>{`${c} · ${s.l}: ${fmt(s.v[i])}`}</title></rect>
+                {s.v[i] > 0 && <text x={x + (bw - 2) / 2} y={y - 4} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="var(--navy)">{fmt(s.v[i])}</text>}</g>;
+            })}
+            <text x={pad + i * cw + cw / 2} y={h - 12} textAnchor="middle" fontSize={10.5} fill="var(--slate)">{c}</text>
+          </g>
+        ))}
+      </svg>
+      <div className="legend">{series.map(s => <span key={s.l}><i style={{ background: s.c }} />{s.l}</span>)}</div>
+    </div>
+  );
+}
+
 /** Stacked bars: rows of segments. */
-export function Stack({ rows, keys, colors, labels, h = 200 }: { rows: { l: string; v: Record<string, number> }[]; keys: string[]; colors: Record<string, string>; labels?: Record<string, string>; h?: number }) {
+export function Stack({ rows, keys, colors, labels, h = 200, fmt = (v: number) => String(v), onClick }: { rows: { l: string; v: Record<string, number> }[]; keys: string[]; colors: Record<string, string>; labels?: Record<string, string>; h?: number; fmt?: (v: number) => string; onClick?: (i: number) => void }) {
   const w = 560, pad = 10, max = Math.max(...rows.map(r => keys.reduce((a, k) => a + (r.v[k] ?? 0), 0)), 1), bw = (w - pad) / Math.max(rows.length, 1);
   return (
     <div>
@@ -111,9 +187,9 @@ export function Stack({ rows, keys, colors, labels, h = 200 }: { rows: { l: stri
         {rows.map((r, i) => {
           const x = pad + i * bw + bw * 0.22; let y = h - 26; const tot = keys.reduce((a, k) => a + (r.v[k] ?? 0), 0);
           return (
-            <g key={i}>
-              {keys.map(k => { const hh = (r.v[k] ?? 0) * (h - 52) / max; y -= hh; return <rect key={k} x={x} y={y} width={bw * 0.56} height={Math.max(hh, 0)} fill={colors[k]}><title>{`${labels?.[k] ?? k}: ${r.v[k] ?? 0}`}</title></rect>; })}
-              <text x={x + bw * 0.28} y={y - 5} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--navy)">{tot}</text>
+            <g key={i} onClick={onClick ? () => onClick(i) : undefined} style={{ cursor: onClick ? 'pointer' : undefined }}>
+              {keys.map(k => { const hh = (r.v[k] ?? 0) * (h - 52) / max; y -= hh; return <rect key={k} x={x} y={y} width={bw * 0.56} height={Math.max(hh, 0)} fill={colors[k]}><title>{`${labels?.[k] ?? k}: ${fmt(r.v[k] ?? 0)}`}</title></rect>; })}
+              <text x={x + bw * 0.28} y={y - 5} textAnchor="middle" fontSize={10.5} fontWeight={700} fill="var(--navy)">{fmt(tot)}</text>
               <text x={x + bw * 0.28} y={h - 10} textAnchor="middle" fontSize={10} fill="var(--slate)">{r.l}</text>
             </g>
           );

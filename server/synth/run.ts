@@ -13,8 +13,10 @@
 import type { Transaction } from '@electric-sql/pglite';
 import { getDb, closeDb } from '../db/db.js';
 import { AS_OF, ROOT, config } from '../config.js';
-import { CRITERIA, suggestPhase } from '../domain.js';
+import { CRITERIA, followOns, suggestPhase, type ExitReason } from '../domain.js';
 import { seedPeople, removePeople } from './people.js';
+import { seedOps, removeOps } from './ops.js';
+import { seedBenefits, removeBenefits } from './benefits.js';
 import { rngFor, type R } from './util.js';
 import { fillInventory, inventoryGaps, removeFill } from './fill.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -59,7 +61,7 @@ type Crit = { gate: number; ord: number; status: 'MET' | 'PENDING' | 'WAIVED'; e
 type Gen = {
   phase: number; status: Status; suggested: { phase: number; status: Status };
   entered: Date[]; end: Date;
-  gates: { gate: number; outcome: 'PASS' | 'HOLD' | 'SUNSET' | 'DESCOPE'; date: Date; authority: string; rationale: string }[];
+  gates: { gate: number; outcome: 'PASS' | 'HOLD' | 'SUNSET' | 'DESCOPE'; date: Date; authority: string; rationale: string; exit_reason?: ExitReason; technical_result?: 'MET' | 'PARTIAL' | 'NOT_MET' }[];
   crits: Crit[];
   funding: { fy: number; appropriation: string; source: string; amount: number; pop_end: Date | null }[];
   values: { path: 'REVENUE' | 'COST' | 'RISK' | 'PERFORMANCE'; is_primary: boolean; metric: string; baseline: string; projected: string; annual_value: number; narrative: string; j8_certified: boolean }[];
@@ -120,12 +122,18 @@ const PASS_RATIONALE = [
   'Operational owner accepted; funding mechanism active; transitioned to sustainment at scale.',
 ];
 const HOLD_RATIONALE = (gate: number, hard: string) => `Hold at Gate ${gate}: "${hard}" (non-waivable) outstanding. Revisit at next board.`;
-const SUNSET_RATIONALE = [
-  'Value hypothesis not validated on DLA data; sponsor withdrew. Close out at PoP end.',
-  'No transition sponsor willing to commit follow-on funding. Close out and file S&T report.',
-  'Technical results below threshold at test; residual knowledge captured in final report.',
+/** Exit stories, each with its structured reason and technical result, so the exits dashboard can count them. */
+const SUNSET_RATIONALE: { t: string; reason: ExitReason; tech: 'MET' | 'PARTIAL' | 'NOT_MET'; w: number }[] = [
+  { t: 'The technology worked at test, but no operational owner would commit follow-on funding. Close out and file the S&T report.', reason: 'NO_OWNER', tech: 'MET', w: 3 },
+  { t: 'Value hypothesis not validated on DLA data; the measured benefit was well below the Stage 0 estimate. Close out at PoP end.', reason: 'VALUE', tech: 'PARTIAL', w: 3 },
+  { t: 'Technical results below threshold at test; residual knowledge captured in the final report.', reason: 'TECHNICAL', tech: 'NOT_MET', w: 2 },
+  { t: 'Sponsor withdrew after a change in its priorities; no other directorate would take the project on.', reason: 'SPONSOR', tech: 'PARTIAL', w: 2 },
+  { t: 'A commercial product now meets the need at lower cost; stop and redirect funds.', reason: 'SUPERSEDED', tech: 'MET', w: 1 },
 ];
-const DESCOPE_RATIONALE = 'Descoped to S&T report — findings published to DTIC; no transition planned.';
+const FOLLOW_ON_RATIONALE = 'This phase met its objectives; the work continues as a follow-on project, so this record closes here.';
+const DESCOPE_RATIONALE = 'Descoped to an S&T report — findings published to DTIC; no transition planned.';
+/** Projects whose work continues under a later project (same title stem, later data call or higher phase). Filled in main(). */
+const HAS_FOLLOW_ON = new Set<number>();
 const HARD_TEXT = ['Co-sponsor named (signed LOI)', 'JHU-APL TRA fully satisfactory (5/5)', 'J8 Finance ROI certification in writing', 'Signed funding commitment — SES level', 'J7 contract closeout / novation confirmed'];
 const HARD_ORD = [1, 1, 2, 1, 2];
 
@@ -232,7 +240,13 @@ function generate(p: Proj, r: R, o: Opts = {}): Gen {
       const date = minD(add(AS_OF, -3), maxD(add(entered[phase], 30), add(AS_OF, -r.between(20, 120))));
       g.gates.push({ gate, outcome: 'HOLD', date, authority: GATE_AUTHORITY[gate], rationale: HOLD_RATIONALE(gate, HARD_TEXT[gate]) });
     }
-    if (exit) g.gates.push({ gate, outcome: status === 'SUNSET' ? 'SUNSET' : 'DESCOPE', date: end, authority: GATE_AUTHORITY[gate], rationale: status === 'SUNSET' ? r.pick(SUNSET_RATIONALE) : DESCOPE_RATIONALE });
+    if (exit) {
+      const report = status === 'DESCOPED' || /dtic/i.test(p.transition_phase ?? '') || /dtic/i.test(p.transition_type ?? '');
+      const story = HAS_FOLLOW_ON.has(p.id) ? { t: FOLLOW_ON_RATIONALE, reason: 'FOLLOW_ON' as ExitReason, tech: r.chance(0.8) ? 'MET' as const : 'PARTIAL' as const }
+        : report ? { t: DESCOPE_RATIONALE, reason: 'KNOWLEDGE' as ExitReason, tech: r.pick(['MET', 'PARTIAL', 'PARTIAL'] as const) }
+        : SUNSET_RATIONALE[r.weighted(SUNSET_RATIONALE.map(s => s.w))];
+      g.gates.push({ gate, outcome: status === 'SUNSET' ? 'SUNSET' : 'DESCOPE', date: end, authority: GATE_AUTHORITY[gate], rationale: story.t, exit_reason: story.reason, technical_result: story.tech });
+    }
   }
 
   /* transition pathway */
@@ -249,7 +263,8 @@ function generate(p: Proj, r: R, o: Opts = {}): Gen {
   if (phase >= 1 && r.chance(phase >= 3 ? 0.95 : 0.8)) {
     const path = valuePath(p);
     const m = measure(path, r);
-    const scale = [0, [0.2e6, 1e6], [0.5e6, 4e6], [1e6, 8e6], [2e6, 15e6], [2e6, 15e6]][phase] as [number, number];
+    // early-phase value is a hypothesis, so keep it modest; portfolio total should look like a realistic R&D return
+    const scale = [0, [50e3, 250e3], [100e3, 900e3], [250e3, 2e6], [500e3, 4e6], [500e3, 4e6]][phase] as [number, number];
     const annual = round5k(r.between(...scale));
     const j8 = phase >= 3 || g.crits.some(c => c.gate === 2 && c.ord === 2 && c.status === 'MET');
     g.values.push({ path, is_primary: true, ...m, annual_value: annual, j8_certified: j8,
@@ -268,13 +283,15 @@ function generate(p: Proj, r: R, o: Opts = {}): Gen {
   for (const fy of p.fys) {
     const probe = minD(add(new Date(Date.UTC(fy - 1, 9, 1)), 150), AS_OF);
     const k = phaseAt(probe);
-    if (k >= 1 && k <= 4) {
+    // ESF: J68 RDT&E funds Phases I–III; Phase IV gets none (a few slip through, as the fiscal-law register should catch)
+    if (k >= 1 && (k <= 3 || (k === 4 && r.chance(0.08)))) {
       const amt = round5k(r.between(...([[0, 0], [100e3, 300e3], [300e3, 1.2e6], [600e3, 1.8e6], [200e3, 700e3]][k] as [number, number])));
       let pe = p.pop_end ?? new Date(Date.UTC(fy, 8, 30));
       if (gate4 && pe >= gate4) pe = add(gate4, -r.between(10, 60));       // RDT&E closes before Gate 4 (no ADA) — scenario 3 breaks this on purpose
       g.funding.push({ fy, appropriation: p.element_code === 'SBIR' ? 'RDT&E BA6' : 'RDT&E BA3', source: p.element_code === 'SBIR' ? 'J68 R&D (SBIR)' : 'J68 R&D', amount: amt, pop_end: pe });
     }
-    if (k >= 3) g.funding.push({ fy, appropriation: path === 'A_WCF' ? 'WCF' : 'O&M', source: p.sponsor ?? 'Sponsor MSC', amount: round5k(r.between(200e3, 1.2e6) * (k === 5 ? 1.5 : 1)), pop_end: new Date(Date.UTC(fy, 8, 30)) });
+    // sponsors co-fund from Phase III on (a few Phase III projects run on J68 money alone — a fiscal-law risk)
+    if (k >= 4 || (k === 3 && r.chance(0.9))) g.funding.push({ fy, appropriation: path === 'A_WCF' ? 'WCF' : 'O&M', source: p.sponsor ?? 'Sponsor MSC', amount: round5k(r.between(200e3, 1.2e6) * (k === 5 ? 1.5 : 1)), pop_end: new Date(Date.UTC(fy, 8, 30)) });
   }
 
   g.confirmedAt = minD(add(AS_OF, -1), maxD(entered[phase], add(AS_OF, -r.between(20, 330))));
@@ -341,6 +358,7 @@ const SCENARIOS: Scenario[] = [
       g.crits.push({ gate: 2, ord: 1, status: 'MET', evidence: `PRR minutes ${iso(after(160))}`, by: p.pm ?? ADMIN, at: after(160) });
       g.crits.push({ gate: 2, ord: 3, status: 'MET', evidence: `Transition plan v1.0 declared ${iso(after(200))}`, by: p.pm ?? ADMIN, at: after(200) });
       const sg = g.gates.find(x => x.outcome === 'SUNSET')!;
+      sg.exit_reason = 'VALUE'; sg.technical_result = 'PARTIAL';
       sg.rationale = 'Sunset at Gate 2. The prototype met its technical targets, but measured savings were about a third of the Stage 0 hypothesis and J8 declined to certify the ROI; the sponsor did not reaffirm. Lessons learned: validate the baseline with J8 at Stage 0, and secure written co-sponsor commitment before PRR.';
       g.values = [{ path: valuePath(p), is_primary: true, ...measure(valuePath(p), r), annual_value: 0, j8_certified: false, narrative: 'Not realized. Measured savings fell well short of the Stage 0 hypothesis; see the Gate 2 sunset rationale for lessons learned.' }];
       g.paths = [];
@@ -386,6 +404,8 @@ const SCENARIOS: Scenario[] = [
 
 /* ── persistence ── */
 async function removeSynthetic(tx: Transaction) {
+  await removeBenefits(tx);
+  await removeOps(tx);
   await removePeople(tx);
   const unfilled = await removeFill(tx);
   await tx.exec(`DELETE FROM demo_scenario; DELETE FROM audit_event WHERE synthetic; DELETE FROM gate_decision WHERE synthetic;
@@ -430,8 +450,8 @@ async function write(tx: Transaction, p: Proj, g: Gen, critId: Map<string, numbe
       [p.id, k, iso(g.entered[k]), k < g.phase ? iso(g.entered[k + 1]) : exit ? iso(g.end) : null]);
 
   for (const x of g.gates) {
-    await tx.query('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by, created_at, synthetic) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)',
-      [p.id, x.gate, x.outcome, iso(x.date), x.authority, x.rationale, ADMIN, stamp(x.date)]);
+    await tx.query('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by, created_at, exit_reason, technical_result, synthetic) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)',
+      [p.id, x.gate, x.outcome, iso(x.date), x.authority, x.rationale, ADMIN, stamp(x.date), x.exit_reason ?? null, x.technical_result ?? null]);
     audits.push({ at: stamp(x.date), actor: x.authority === DCG ? DCG : ADMIN, action: 'GATE_DECISION', before: null, after: { gate: x.gate, outcome: x.outcome, rationale: x.rationale } });
   }
   for (const c of g.crits) {
@@ -478,7 +498,7 @@ async function main() {
     console.log('Gaps remaining after fill:', JSON.stringify((await inventoryGaps(tx)).counts));
     await resuggest(tx);   // phases now reflect the filled status / PoP
 
-    const latestFy = (await tx.query<{ fy: number }>('SELECT max(fy) fy FROM data_call')).rows[0].fy;
+    const latestFy = (await tx.query<{ fy: number }>(`SELECT max(fy) fy FROM data_call WHERE status = 'CLOSED'`)).rows[0].fy;
     const critId = new Map((await tx.query<any>('SELECT id, gate, ord FROM criterion_def')).rows.map(c => [`${c.gate}:${c.ord}`, c.id] as [string, number]));
     const projects = (await tx.query<Proj>(`
       SELECT p.id, p.esh_id, p.title, p.element_code, p.program_code, p.status_code, p.pop_start, p.pop_end, p.first_fy, p.transition_phase, p.transition_type,
@@ -490,6 +510,11 @@ async function main() {
       FROM project p LEFT JOIN person pe ON pe.id = p.pm_id
       WHERE p.esf_source = 'SUGGESTED'
       ORDER BY p.esh_id`, [latestFy])).rows.filter(p => !KEEP_UNSEEDED.has(p.title.trim().toUpperCase()));
+
+    /* which projects continue as a later project (from the real titles) — those exits read as "continued" */
+    HAS_FOLLOW_ON.clear();
+    for (const id of followOns((await tx.query<any>('SELECT id, title, first_fy FROM project')).rows).keys()) HAS_FOLLOW_ON.add(id);
+    console.log(`Follow-on chains: ${HAS_FOLLOW_ON.size} projects continue under a later project.`);
 
     /* scenarios first: pick a real project for each, preferring ones in the latest data call */
     const used = new Set<number>(), usedWords = new Set<string>();
@@ -525,6 +550,8 @@ async function main() {
       value_cases: await count('value_case'), pathways: await count('transition_pathway'), audit_events: events });
 
     await seedPeople(tx, SEED, AS_OF, new Set([...scenarioOf.keys()]));
+    await seedOps(tx, SEED, AS_OF);
+    await seedBenefits(tx, SEED, AS_OF);
   });
   await closeDb();
 }
