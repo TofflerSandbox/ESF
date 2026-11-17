@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api, qs } from '../api';
 import { useMeta } from '../App';
-import { EL_COL, ErrorBox, Loading, OrgList, PhaseChip, StatusChip, d10, go, useAsync } from '../ui';
+import { EL_COL, ErrorBox, Loading, OrgList, PhaseChip, StatusChip, d10, go, useAsync, ProgramLink } from '../ui';
 import { AssistPanel } from './Assist';
 
 const KEYS = ['q', 'fy', 'element', 'program', 'pm', 'status', 'esfStatus', 'source', 'owner', 'priority', 'mine'] as const;
@@ -70,7 +70,7 @@ export function Projects({ initial }: { initial: string }) {
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
                 <td className="mono code">{p.esh_id}</td>
                 <td className="ttl">{p.title}</td>
-                <td><span className="mono" style={{ color: EL_COL[p.element_code] ?? 'var(--slate)', fontWeight: 600 }}>{p.program_code ?? '—'}</span></td>
+                <td><ProgramLink code={p.program_code} el={p.element_code} name={meta.programs.find(x => x.code === p.program_code)?.name} /></td>
                 <td className="sm">{p.pm ?? '—'}</td>
                 <td><StatusChip s={p.status_code} /></td>
                 <td><PhaseChip p={p} /></td>

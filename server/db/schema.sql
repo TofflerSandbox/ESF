@@ -448,3 +448,50 @@ ALTER TABLE criterion_def ADD COLUMN IF NOT EXISTS proposal boolean NOT NULL DEF
 ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS receiver_org_id int REFERENCES org(id);  -- who takes it on and pays to run it
 ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS funding_line text;                        -- the line that funds it after transition
 ALTER TABLE transition_pathway ADD COLUMN IF NOT EXISTS pom_fy int;                               -- Path B: the POM year it is programmed in
+
+-- ───────────── value from onset to delivery (Release B) ─────────────
+-- Every gate decision freezes the value case and what the project has cost, so the promise can be traced from Gate 0 to delivery.
+CREATE TABLE IF NOT EXISTS value_snapshot (
+  id serial PRIMARY KEY,
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  gate int NOT NULL,
+  decision_id int REFERENCES gate_decision(id) ON DELETE SET NULL,
+  outcome text,
+  taken_at date NOT NULL,
+  annual_value numeric(14,2),
+  path text,
+  metric text,
+  j8_certified boolean NOT NULL DEFAULT false,
+  cost_to_date numeric(14,2),
+  cost_to_complete numeric(14,2),
+  synthetic boolean NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS value_snapshot_p ON value_snapshot(project_id);
+ALTER TABLE project ADD COLUMN IF NOT EXISTS cost_to_complete numeric(14,2);           -- PM's estimate of what is left to spend, all sources
+ALTER TABLE project ADD COLUMN IF NOT EXISTS cost_to_complete_synthetic boolean NOT NULL DEFAULT false;
+
+-- After Gate 4: realization reviews at 6, 12 and 24 months (a Hub proposal), each with an outcome and owned actions.
+CREATE TABLE IF NOT EXISTS realization_review (
+  id serial PRIMARY KEY,
+  project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+  months int NOT NULL,
+  due_on date NOT NULL,
+  held_on date,
+  status text NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED','HELD')),
+  outcome text CHECK (outcome IN ('ON_TRACK','CORRECTIVE_ACTION','REBASELINE','CLOSE_TRACKING')),
+  realization numeric(6,3),
+  summary text,
+  recorded_by text,
+  synthetic boolean NOT NULL DEFAULT false,
+  UNIQUE (project_id, months)
+);
+CREATE TABLE IF NOT EXISTS realization_action (
+  id serial PRIMARY KEY,
+  review_id int NOT NULL REFERENCES realization_review(id) ON DELETE CASCADE,
+  owner text NOT NULL CHECK (owner IN ('R&D','SPONSOR','J8','J1')),
+  text text NOT NULL,
+  due_on date NOT NULL,
+  status text NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','DONE')),
+  done_on date,
+  synthetic boolean NOT NULL DEFAULT false
+);

@@ -73,7 +73,7 @@ async function main() {
 
   await db.transaction(async tx => {
     if (reset) {
-      await tx.exec(`TRUNCATE benefit_measure, benefit_baseline, document, senior_decision, gate_board_action, gate_board_item, gate_board, data_call_response, project_fill, project_contact, org_person, project_sponsor_leader, leader_readiness, senior_leader, adoption_measure, workforce_impact,
+      await tx.exec(`TRUNCATE realization_action, realization_review, value_snapshot, benefit_measure, benefit_baseline, document, senior_decision, gate_board_action, gate_board_item, gate_board, data_call_response, project_fill, project_contact, org_person, project_sponsor_leader, leader_readiness, senior_leader, adoption_measure, workforce_impact,
         demo_scenario, audit_event, import_run, app_user, transition_pathway, value_case, funding_line, criterion_status,
         criterion_def, gate_decision, phase_record, project_priority, priority, project_snapshot, data_call, project_org,
         project_contract, project_external_id, project, person, org_alias, org, program, element RESTART IDENTITY CASCADE`);

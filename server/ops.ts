@@ -311,10 +311,39 @@ export function registerOps(app: FastifyInstance, db: PGlite, h: H) {
     const def = (g: number, o: number) => defs.find((d: any) => d.gate === g && d.ord === o);
     const closed = (pid: number, g: number, o: number) => { const d = def(g, o); if (!d) return true; const v = st.get(`${pid}:${d.id}`); return v === 'MET' || (!d.non_waivable && v === 'WAIVED'); };
     const readySet = new Set(ready);
+    /* Stage 5 (after Gate 4): Hub-proposed obligations, tracked from the realization record */
+    const asOf = AS_OF.toISOString().slice(0, 10);
+    const lastMonth = new Date(Date.UTC(AS_OF.getUTCFullYear(), AS_OF.getUTCMonth() - 2, 1)).toISOString().slice(0, 10);
+    const sixAgo = new Date(Date.UTC(AS_OF.getUTCFullYear(), AS_OF.getUTCMonth() - 6, 1)).toISOString().slice(0, 10);
+    const [fielded, dueReviews, rdActions, adoption] = await Promise.all([
+      q(`SELECT p.id, p.esh_id, p.title, pe.name pm, o.name owner, b.transitioned_on,
+           (SELECT max(period) FROM benefit_measure m WHERE m.project_id = p.id) last_report,
+           (SELECT max(period) FROM benefit_measure m WHERE m.project_id = p.id AND m.method = 'J8') last_j8
+         FROM benefit_baseline b JOIN project p ON p.id = b.project_id LEFT JOIN person pe ON pe.id = p.pm_id LEFT JOIN org o ON o.id = b.owner_org_id`),
+      q(`SELECT r.*, p.esh_id, p.title FROM realization_review r JOIN project p ON p.id = r.project_id WHERE r.due_on <= $1`, [asOf]),
+      q(`SELECT a.*, p.esh_id, p.title FROM realization_action a JOIN realization_review r ON r.id = a.review_id JOIN project p ON p.id = r.project_id WHERE a.owner = 'R&D'`),
+      q(`SELECT project_id, count(*)::int n FROM adoption_measure GROUP BY 1`),
+    ]);
+    const iso = (v: any) => (v instanceof Date ? v.toISOString() : String(v ?? '')).slice(0, 10);
+    const adopted = new Map(adoption.map((x: any) => [x.project_id, x.n]));
+    const post = (t: string) => {
+      const row = (x: any, owes: string) => ({ esh_id: x.esh_id, title: x.title, pm: x.pm ?? null, sponsor: x.owner ?? null, owes });
+      if (t === 'REPORTING') { const open = fielded.filter((f: any) => !f.last_report || iso(f.last_report) < lastMonth); return { working: fielded.length, met: fielded.length - open.length, open: open.map((f: any) => row(f, f.last_report ? `No benefit report since ${iso(f.last_report).slice(0, 7)}` : 'No benefit report yet')), evidence: ['A monthly benefit report within the last two months'] }; }
+      if (t === 'J8_VALIDATE') { const due = fielded.filter((f: any) => f.last_report); const open = due.filter((f: any) => !f.last_j8 || iso(f.last_j8) < sixAgo); return { working: due.length, met: due.length - open.length, open: open.map((f: any) => row(f, 'No J8-validated month in the last two quarters')), evidence: ['A J8-validated benefit report within six months'] }; }
+      if (t === 'REVIEWS') { const open = dueReviews.filter((r: any) => r.status !== 'HELD'); return { working: dueReviews.length, met: dueReviews.length - open.length, open: open.map((r: any) => row(r, `${r.months}-month realization review due ${iso(r.due_on)} not held`)), evidence: ['Realization reviews held when due (6, 12, 24 months)'] }; }
+      if (t === 'RD_ACTIONS') { const open = rdActions.filter((a: any) => a.status === 'OPEN' && iso(a.due_on) < asOf); return { working: rdActions.length, met: rdActions.length - open.length, open: open.map((a: any) => row(a, `Overdue since ${iso(a.due_on)}: ${a.text}`)), evidence: ['R&D actions from realization reviews closed by their due date'] }; }
+      const due = fielded.filter((f: any) => iso(f.transitioned_on) <= new Date(AS_OF.getTime() - 200 * 864e5).toISOString().slice(0, 10));
+      const open = due.filter((f: any) => (adopted.get(f.id) ?? 0) < 3);
+      return { working: due.length, met: due.length - open.length, open: open.map((f: any) => row(f, 'Adoption not measured at 30, 90 and 180 days')), evidence: ['Adoption measured at 30, 90 and 180 days after go-live'] };
+    };
     const rows = MATRIX.map(a => ({
       key: a.key, actor: a.actor, hub: !!a.hub,
       cells: a.cells.map(([code, tip], g) => {
-        const base = { code, tip, gate: g, tracked: false as boolean, working: 0, met: 0, pct: null as number | null, open: [] as any[], evidence: [] as string[] };
+        const base = { code, tip, gate: g, tracked: false as boolean, working: 0, met: 0, pct: null as number | null, open: [] as any[], evidence: [] as string[], proposal: false, esf: null as null | [string, string] };
+        if (g === 5 && a.post && a.postTrack) {
+          const t = post(a.postTrack);
+          return { ...base, code: a.post[0], tip: a.post[1], proposal: true, esf: [code, tip] as [string, string], tracked: true, ...t, pct: pct(t.met, t.working) };
+        }
         if (g > 4 || code === '—') return base;
         const ws = working.filter((w: any) => w.gate === g);
         if (a.decides) {

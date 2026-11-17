@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Bars, Card, Donut, ErrorBox, Loading, PH_COL, d10, go, money, useAsync } from '../ui';
+import { Bars, Card, Donut, ErrorBox, Loading, PH_COL, d10, go, money, useAsync, ProgramLink } from '../ui';
 
 const REASON_COL: Record<string, string> = {
   FOLLOW_ON: '#2F7D5C', KNOWLEDGE: '#3F90CB', NO_OWNER: '#F9B018', VALUE: '#D9822B', TECHNICAL: '#CE0F3E', SPONSOR: '#6B3FA0', SUPERSEDED: '#8A6B25', null: '#B9B4A8',
@@ -109,7 +109,7 @@ export function Exits() {
             <tbody>{sorted.map((r: any) => (
               <tr key={r.esh_id} onClick={() => go('#/p/' + r.esh_id)} title={r.rationale ?? ''}>
                 <td className="ttl">{r.title}<div className="sub mono">{r.esh_id}</div></td>
-                <td className="sm">{progName(r.program_code)}</td>
+                <td className="sm"><ProgramLink code={r.program_code} name={progName(r.program_code)} full /></td>
                 <td className="sm"><span className="phdot" style={{ background: PH_COL[Math.min(r.gate, 5)] }} />Gate {r.gate}</td>
                 <td className="mono sm nowrap">{d10(r.decided_at)}</td>
                 <td className="sm"><span className="phdot" style={{ background: REASON_COL[String(r.reason)] }} />{r.reason_label}</td>

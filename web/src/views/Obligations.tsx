@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useSort } from '../sort';
 import { Card, ErrorBox, Help, Loading, go, useAsync } from '../ui';
+import { HubProposal } from './Ownership';
 
 const CODE: Record<string, { c: string; bg: string; l: string }> = {
   K: { c: '#fff', bg: '#16233C', l: 'Key decision' }, R: { c: '#fff', bg: '#3F90CB', l: 'Required' },
   O: { c: '#16233C', bg: '#DCE7F3', l: 'Optional' }, 'O*': { c: '#16233C', bg: '#F1E3BF', l: 'Escalation only' }, '—': { c: '#B9B4A8', bg: 'transparent', l: 'Not applicable' },
 };
-const GATE_L = ['Gate 0 · Intake', 'Gate 1 · Phase I exit', 'Gate 2 · Phase II exit', 'Gate 3 ★ · Commitment', 'Gate 4 · Handoff', 'Stage 5 · Annual review'];
+const GATE_L = ['Gate 0 · Intake', 'Gate 1 · Phase I exit', 'Gate 2 · Phase II exit', 'Gate 3 ★ · Commitment', 'Gate 4 · Handoff', 'Stage 5 · After transition'];
 
 /** Stakeholder obligations: the ESF matrix of who owes what at each gate, tracked live against every project. */
 export function Obligations() {
@@ -42,9 +43,9 @@ export function Obligations() {
                 {r.cells.map((c: any, gi: number) => {
                   const on = sel?.a === ai && sel?.g === gi;
                   return (
-                    <td key={gi} className={(c.code === '—' ? 'na' : 'cellp') + (on ? ' on' : '')} onClick={() => c.code !== '—' && setSel({ a: ai, g: gi })} title={c.tip}>
+                    <td key={gi} className={(c.code === '—' ? 'na' : 'cellp') + (on ? ' on' : '') + (c.proposal ? ' prop' : '')} onClick={() => c.code !== '—' && setSel({ a: ai, g: gi })} title={c.tip}>
                       {c.code !== '—' ? <>
-                        <span className="ocode" style={{ background: CODE[c.code].bg, color: CODE[c.code].c }}>{c.code}</span>
+                        <span className="ocode" style={{ background: CODE[c.code].bg, color: CODE[c.code].c }}>{c.code}</span>{c.proposal && <span className="opropmark" title="Hub proposal to the ESF">✚</span>}
                         {c.tracked && c.pct != null && <span className="opct" style={{ color: c.pct >= 70 ? 'var(--spon)' : c.pct >= 40 ? 'var(--goldD)' : 'var(--red)' }}>{c.pct}%</span>}
                         {c.tracked && c.pct == null && c.open.length > 0 && <span className="opct" style={{ color: 'var(--spon)' }}>{c.open.length} due</span>}
                         {c.tracked && c.pct != null && <span className="otrack"><span style={{ width: `${c.pct}%`, background: c.pct >= 70 ? '#2F7D5C' : c.pct >= 40 ? '#C9A961' : '#CE0F3E' }} /></span>}
@@ -56,12 +57,14 @@ export function Obligations() {
             ))}</tbody>
           </table>
         </div>
-        <div className="legend" style={{ padding: '8px 16px 12px' }}>{Object.entries(d.legend).map(([k2, l]) => <span key={k2}><i style={{ background: CODE[k2].bg === 'transparent' ? '#EDEBE4' : CODE[k2].bg }} />{k2} {String(l)}</span>)}<span>% = delivered for projects now at that gate</span></div>
+        <div className="legend" style={{ padding: '8px 16px 12px' }}>{Object.entries(d.legend).map(([k2, l]) => <span key={k2}><i style={{ background: CODE[k2].bg === 'transparent' ? '#EDEBE4' : CODE[k2].bg }} />{k2} {String(l)}</span>)}<span>% = delivered for projects now at that gate</span>
+          <span><b className="opropmark">✚</b> Hub proposal: after transition, R&D, the owner, J8 and J1 keep obligations until the value is proven (the ESF ends J68's role at Gate 4)</span></div>
       </Card>
 
       {cell && sel && (
         <Card title={`${d.rows[sel.a].actor} at ${GATE_L[sel.g]}`} right={<span className="ocode big" style={{ background: CODE[cell.code].bg, color: CODE[cell.code].c }}>{cell.code} · {CODE[cell.code].l}</span>}>
-          <p className="gate-q" style={{ fontSize: 16 }}>{cell.tip}</p>
+          <p className="gate-q" style={{ fontSize: 16 }}>{cell.tip}{cell.proposal && <HubProposal />}</p>
+          {cell.esf && <div className="sub" style={{ marginBottom: 8 }}><b>The ESF today ({cell.esf[0]}):</b> {cell.esf[1]}</div>}
           {cell.tracked ? (<>
             {cell.evidence.length > 0 && <div className="sub" style={{ margin: '6px 0 10px' }}><b>Evidence the Hub tracks:</b> {cell.evidence.join(' · ')}</div>}
             {cell.pct != null && <div className="sub" style={{ marginBottom: 8 }}>Delivered for <b>{cell.met} of {cell.working}</b> projects now at this gate.</div>}

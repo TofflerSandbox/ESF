@@ -23,6 +23,8 @@ import { Obligations } from './views/Obligations';
 import { Decisions } from './views/Decisions';
 import { Documents } from './views/Documents';
 import { Tour } from './views/Tour';
+import { Realization } from './views/Realization';
+import { Program, Programs } from './views/Program';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -65,9 +67,9 @@ const NAV: { g: string; items: NavItem[] }[] = [
   { g: 'Portfolio', items: [
     { h: '', r: 'dash', l: 'Dashboard', i: '▦' }, { h: 'board', r: 'board', l: 'Pipeline', i: '⇶' },
     { h: 'gates', r: 'gates', l: 'Gates', i: '◆' }, { h: 'boards', r: 'boards', l: 'Gate boards', i: '▤' }, { h: 'exits', r: 'exits', l: 'Managed exits', i: '⤫' },
-    { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
+    { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'programs', r: 'programs', l: 'Programs', i: '▥' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
   ] },
-  { g: 'Value & funding', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: '$' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: '⇄' }] },
+  { g: 'Value & funding', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: '$' }, { h: 'realization', r: 'realization', l: 'Realization reviews', i: '↻' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: '⇄' }] },
   { g: 'People', items: [{ h: 'j1', r: 'j1', l: 'Workforce & change', i: '◎' }, { h: 'obligations', r: 'obligations', l: 'Stakeholder obligations', i: '▣' }] },
   { g: 'Data', items: [{ h: 'datacall', r: 'datacall', l: 'Data call', i: '✎' }, { h: 'documents', r: 'documents', l: 'Documents', i: '▧' }, { h: 'health', r: 'health', l: 'Data health', i: '♥' }] },
   { g: 'Administration', items: [
@@ -93,7 +95,7 @@ export function App() {
   if (err) return <main><ErrorBox msg={`Cannot reach the ESH API: ${err}. Is the server running (npm run dev)? Has the import been run (npm run import)?`} /></main>;
   if (!meta) return <main><Loading /></main>;
 
-  const key = meta.me.org_id && route === `org/${meta.me.org_id}` ? 'myorg' : route === '' ? 'dash' :route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];
+  const key = meta.me.org_id && route === `org/${meta.me.org_id}` ? 'myorg' : route === '' ? 'dash' :route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('program') ? 'programs' :route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];
   let view;
   if (route.startsWith('p/')) view = <Record key={route} esh={route.slice(2)} />;
   else if (route.startsWith('brief/')) view = <Brief esh={route.slice(6)} />;
@@ -104,6 +106,9 @@ export function App() {
   else if (route.startsWith('j1')) view = <J1 />;
   else if (route.startsWith('health')) view = <Health />;
   else if (route.startsWith('roi')) view = <Roi />;
+  else if (route.startsWith('realization')) view = <Realization />;
+  else if (/^program\/[A-Za-z0-9-]+$/.test(route)) view = <Program key={route} code={route.slice(8)} />;
+  else if (route.startsWith('programs')) view = <Programs />;
   else if (/^gates(\/[0-4])?$/.test(route)) view = <Gates key={route} initial={route.length > 6 ? Number(route.slice(6)) : undefined} />;
   else if (route.startsWith('exits')) view = <Exits />;
   else if (route.startsWith('funding')) view = <Funding />;

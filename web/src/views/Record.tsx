@@ -4,6 +4,7 @@ import { useMeta } from '../App';
 import { auditText } from '../auditText';
 import { ProjectDocuments } from './Documents';
 import { HubProposal, SponsorTag } from './Ownership';
+import { ProjectRealization, ProjectValueHistory } from './Realization';
 import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
 
 /** Darker text versions of the status colours, readable on white. */
@@ -50,7 +51,7 @@ export function Record({ esh }: { esh: string }) {
       <a className="bk" href="#/projects">← Projects</a>
       <div className="rhead" style={{ ['--ph' as any]: phCol }}>
         <div style={{ minWidth: 0 }}>
-          <div className="code">{p.esh_id} · {program ? `${program.name} (${program.code})` : p.program_code ?? 'No program'} · {p.element_code ?? '—'} · in data calls {r.snapshots.map((s: any) => 'FY' + String(s.fy).slice(2)).join(', ')}</div>
+          <div className="code">{p.esh_id} · {p.program_code ? <a className="proglink" href={'#/program/' + p.program_code}>{program ? `${program.name} (${program.code})` : p.program_code}</a> : 'No program'} · {p.element_code ?? '—'} · in data calls {r.snapshots.map((s: any) => 'FY' + String(s.fy).slice(2)).join(', ')}</div>
           <h2>{p.title}</h2>
           <div className="facts">
             <a className="fact phase" href={exited ? '#/exits' : '#/phase/' + phIdx} title={p.esf_source === 'SUGGESTED' ? 'Suggested from workbook data — not yet confirmed' : 'Open this phase'}
@@ -133,6 +134,8 @@ export function Record({ esh }: { esh: string }) {
             </Card>
           )}
 
+          {p.esf_status === 'AT_SCALE' && <ProjectRealization esh={p.esh_id} />}
+
           <Workforce r={r} />
 
           <Card title="Value case — why this creates ROI for DLA" id="vcase">
@@ -146,6 +149,7 @@ export function Record({ esh }: { esh: string }) {
               </div>
             ))}
             {r.canEdit && <ValueForm onSave={(b) => act('/value-cases', 'POST', b, 'Value case added')} />}
+            <ProjectValueHistory key={r.gates.length} esh={p.esh_id} />
           </Card>
 
           <Card title="Funding — the handoff" right={<span><Chip c="var(--j68D)" bg="var(--j68Bg)">J68</Chip> <Chip c="var(--spon)" bg="var(--sponBg)">Sponsor</Chip></span>}>
@@ -171,7 +175,7 @@ export function Record({ esh }: { esh: string }) {
             <dl className="kv">
               <dt>Description</dt><dd>{p.description ?? '—'} {F('description')}</dd>
               <dt>Program mgr</dt><dd>{r.pm?.name ?? '—'} {F('pm_id')}</dd>
-              <dt>Program</dt><dd>{program ? `${program.name} (${program.code})` : p.program_code ?? '—'} · {p.element_code ?? '—'} {F('program_code', 'element_code')}</dd>
+              <dt>Program</dt><dd>{p.program_code ? <a className="proglink" href={'#/program/' + p.program_code}>{program ? `${program.name} (${program.code})` : p.program_code}</a> : '—'} · {p.element_code ?? '—'} {F('program_code', 'element_code')}</dd>
               <dt>Status</dt><dd>{p.status_code ? `${p.status_code} · ${STATUS[p.status_code]}` : '—'} {F('status_code')}</dd>
               <dt>PoP</dt><dd className="mono">{d10(p.pop_start)} → {d10(p.pop_end)} {F('pop_start', 'pop_end')}</dd>
               <dt>Charter</dt><dd>{p.charter ?? '—'} {F('charter')}</dd>

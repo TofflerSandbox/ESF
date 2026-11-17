@@ -72,7 +72,11 @@ export function Help({ title, children }: { title: string; children: ReactNode }
 export const OrgLink = ({ id, name, chip = false }: { id: number; name: string; chip?: boolean }) => (
   <a className={chip ? 'org' : 'orglink'} href={'#/org/' + id} onClick={e => e.stopPropagation()} title={`Open ${name}`}>{name}</a>
 );
-export const OrgList = ({ list }: { list?: { id: number; name: string }[] | null }) =>
+/** A program code that opens the program's page (stops the click reaching a clickable row). */
+export const ProgramLink = ({ code, name, el, full = false }: { code: string | null | undefined; name?: string; el?: string | null; full?: boolean }) =>
+  code ? <a className="proglink" href={'#/program/' + code} onClick={e => e.stopPropagation()} title={name ? `${name}: open the program page` : 'Open the program page'}
+    style={el ? { color: EL_COL[el] ?? undefined } : undefined}>{code}{full && name ? <span className="proglink-n"> {name}</span> : null}</a> : <span className="muted">—</span>;
+export const OrgList =({ list }: { list?: { id: number; name: string }[] | null }) =>
   list?.length ? <>{list.map((o, i) => <span key={o.id}>{i > 0 && ' · '}<OrgLink id={o.id} name={o.name} /></span>)}</> : <span className="muted">—</span>;
 export const ORG_KIND: Record<string, string> = { DLA_MSC: 'DLA major subordinate command', DLA_JCODE: 'DLA J-code', SERVICE: 'Military service', ACADEMIA: 'Academia', INDUSTRY: 'Industry', OSD: 'OSD', OTHER: 'Other' };
 export const ROLE_LABEL: Record<string, string> = { SPONSOR: 'Sponsor', CO_SPONSOR: 'Co-sponsor', STAKEHOLDER: 'Stakeholder', TRANSITION_PARTNER: 'Transition partner', ACADEMIA: 'Academic partner', MILITARY: 'Military partner', OSD_MII: 'OSD MII', VENDOR: 'Vendor' };

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
-import { EL_COL, PhaseChip } from '../ui';
+import { EL_COL, PhaseChip, ProgramLink } from '../ui';
 
 type Hit = {
   esh_id: string; title: string; program_code: string | null; program_name: string; element_code: string | null;
@@ -89,7 +89,7 @@ export function AssistPanel({ onShow, onClose }: { onShow: (ids: string[], label
                       <span className="as-hit-top">
                         <span className="mono code">{h.esh_id}</span>
                         <PhaseChip p={h} />
-                        {h.program_code && <span className="mono" style={{ color: EL_COL[h.element_code ?? ''] ?? 'var(--slate)', fontWeight: 600, fontSize: 11 }} title={h.program_name}>{h.program_code}</span>}
+                        {h.program_code && <ProgramLink code={h.program_code} name={h.program_name} el={h.element_code} />}
                         {h.strength === 'related' && <span className="as-rel">related</span>}
                       </span>
                       <span className="as-ttl"><Hl text={h.title} words={r.hl} /></span>

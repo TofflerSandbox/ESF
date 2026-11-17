@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Bars, Card, EL_COL, ErrorBox, Loading, ORG_KIND, PH_COL, PH_SHORT, PhaseChip, ROLE_LABEL, StatusChip, Syn, d10, go, sup, useAsync } from '../ui';
+import { Bars, Card, EL_COL, ErrorBox, Loading, ORG_KIND, PH_COL, PH_SHORT, PhaseChip, ROLE_LABEL, StatusChip, Syn, d10, go, sup, useAsync, ProgramLink } from '../ui';
 import { OrgOwnership, Scorecard } from './Ownership';
 
 const ROLE_ORDER = ['SPONSOR', 'STAKEHOLDER', 'TRANSITION_PARTNER', 'ACADEMIA', 'MILITARY', 'OSD_MII', 'VENDOR'];
@@ -67,7 +67,7 @@ export function Org({ id }: { id: number }) {
           )}
           {d.programs.length > 0 && <>
             <div className="lbl">Live projects by program</div>
-            <div className="chips">{d.programs.map((p: any) => <span key={p.k} className="chip" style={{ color: EL_COL[d.projects.find((x: any) => x.program_code === p.k)?.element_code] ?? 'var(--slate)', background: '#EDEBE4' }}>{p.k} · {p.n}</span>)}</div>
+            <div className="chips">{d.programs.map((p: any) => <a key={p.k} className="chip" href={'#/program/' + p.k} style={{ color: EL_COL[d.projects.find((x: any) => x.program_code === p.k)?.element_code] ?? 'var(--slate)', background: '#EDEBE4' }}>{p.k} · {p.n}</a>)}</div>
           </>}
         </Card>
       </div>
@@ -85,7 +85,7 @@ export function Org({ id }: { id: number }) {
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
                 <td className="mono code">{p.esh_id}</td><td className="ttl">{p.title}</td>
                 <td className="sm">{[...p.roles].sort((a: string, b: string) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b)).map((r: string) => ROLE_LABEL[r]).join(', ')}</td>
-                <td className="sm"><b className="mono">{p.program_code ?? '—'}</b> {p.program_code ? <span className="muted">{progName(p.program_code)}</span> : null}</td>
+                <td className="sm"><ProgramLink code={p.program_code} name={progName(p.program_code)} full /></td>
                 <td><StatusChip s={p.status_code} /></td><td><PhaseChip p={p} /></td><td className="mono sm">{d10(p.pop_end)}</td>
               </tr>
             ))}</tbody>

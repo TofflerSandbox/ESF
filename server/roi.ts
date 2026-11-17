@@ -31,7 +31,7 @@ export const REAL_STATUS: Record<string, { l: string; c: string }> = {
 export async function roiData(db: PGlite, horizon: number) {
   const q = (sql: string, params: unknown[] = []) => db.query<any>(sql, params).then(r => r.rows);
   const [projects, funding, values, gates, baselines, measures] = await Promise.all([
-    q(`SELECT p.id, p.esh_id, p.title, p.program_code, pr.name program_name, p.element_code, p.esf_phase, p.esf_status, pe.name pm,
+    q(`SELECT p.id, p.esh_id, p.title, p.program_code, pr.name program_name, p.element_code, p.esf_phase, p.esf_status, pe.name pm, p.cost_to_complete::float ctc,
          (SELECT string_agg(o.name, ' · ' ORDER BY o.name) FROM project_org po JOIN org o ON o.id = po.org_id WHERE po.project_id = p.id AND po.role = 'SPONSOR') sponsors
        FROM project p LEFT JOIN person pe ON pe.id = p.pm_id LEFT JOIN program pr ON pr.code = p.program_code`),
     q(`SELECT project_id, (source ILIKE 'J68%') j68, sum(amount)::float amt FROM funding_line GROUP BY 1, 2`),
@@ -70,8 +70,9 @@ export async function roiData(db: PGlite, horizon: number) {
   const prospective = projects.filter((p: any) => ACTIVE.includes(p.esf_status)).map((p: any) => {
     const b = base(p), v = valOf.get(p.id), annual = v?.annual ?? 0, prob = pScale[p.esf_phase ?? 0];
     const value = annual * horizon, riskAdj = value * prob;
+    const ctc = p.ctc ?? 0, full = b.cost + ctc;
     return { ...b, phase: p.esf_phase, path: v?.path ?? null, annual, certified: v?.certified ?? 0, value, prob, riskAdj,
-      net: riskAdj - b.cost, multiple: b.cost ? riskAdj / b.cost : null, synthetic: !!v?.synthetic };
+      net: riskAdj - b.cost, multiple: b.cost ? riskAdj / b.cost : null, ctc: p.ctc, fullCost: full, fullMultiple: full ? riskAdj / full : null, synthetic: !!v?.synthetic };
   });
   const exited = projects.filter((p: any) => ['SUNSET', 'DESCOPED'].includes(p.esf_status)).map(base);
   const pCost = sum(prospective, 'cost'), pValue = sum(prospective, 'value'), pRisk = sum(prospective, 'riskAdj'), pAnnual = sum(prospective, 'annual');
@@ -81,6 +82,9 @@ export async function roiData(db: PGlite, horizon: number) {
     annual: pAnnual, certifiedAnnual: sum(prospective, 'certified'), value: pValue, riskAdj: pRisk,
     multiple: pCost ? pValue / pCost : null, riskMultiple: pCost ? pRisk / pCost : null,
     net: pRisk - pCost, withValue: prospective.filter(r => r.annual > 0).length, liveCount: prospective.length,
+    // the honest denominator: what has been spent plus what the PMs estimate is left to spend
+    costToComplete: sum(prospective, 'ctc'), withCtc: prospective.filter(r => r.ctc != null).length,
+    fullMultiple: pCost + sum(prospective, 'ctc') ? pRisk / (pCost + sum(prospective, 'ctc')) : null,
   };
   const byPath = PATHS.map(path => {
     const rs = prospective.filter(r => r.path === path), cost = sum(rs, 'cost');

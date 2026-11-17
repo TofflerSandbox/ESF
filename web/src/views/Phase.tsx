@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
-import { Bars, Card, EL_COL, ErrorBox, Loading, OrgList, PH_COL, PH_NAME, PH_SHORT, PH_TXT, PhaseChip, STATUS, STATUS_COL, StatusChip, d10, go, money, useAsync } from '../ui';
+import { Bars, Card, EL_COL, ErrorBox, Loading, OrgList, PH_COL, PH_NAME, PH_SHORT, PH_TXT, PhaseChip, STATUS, STATUS_COL, StatusChip, d10, go, money, useAsync, ProgramLink } from '../ui';
 
 const months = (from: string | null, to: string) => (from ? (new Date(to).getTime() - new Date(from).getTime()) / (30.44 * 864e5) : null);
 const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -141,7 +141,7 @@ export function Phase({ ph }: { ph: number }) {
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
                 <td className="mono code">{p.esh_id}</td>
                 <td className="ttl">{p.title}</td>
-                <td><span className="mono" style={{ color: EL_COL[p.element_code] ?? 'var(--slate)', fontWeight: 600 }}>{p.program_code ?? '—'}</span></td>
+                <td><ProgramLink code={p.program_code} el={p.element_code} /></td>
                 <td className="sm">{p.pm ?? '—'}</td>
                 <td><StatusChip s={p.status_code} /></td>
                 <td><PhaseChip p={p} /></td>

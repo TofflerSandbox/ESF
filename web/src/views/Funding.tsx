@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, d10, go, money, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, d10, go, money, useAsync, ProgramLink } from '../ui';
 import { TransitionReadiness } from './Ownership';
 
 const SEV: Record<string, string> = { Critical: '#9B1B2E', High: '#CE0F3E', Medium: '#D9822B' };
@@ -70,7 +70,7 @@ export function Funding() {
               <div key={p.esh_id} className="alert-row" onClick={() => go('#/p/' + p.esh_id)}>
                 <span className="tag" style={{ background: p.risk === 'HIGH' ? 'var(--redBg)' : p.risk === 'READY' ? 'var(--sponBg)' : 'var(--goldBg)', color: p.risk === 'HIGH' ? 'var(--red)' : p.risk === 'READY' ? 'var(--spon)' : 'var(--goldD)' }}>
                   {p.risk === 'READY' ? 'READY' : p.risk === 'HIGH' ? 'AT RISK' : 'ON TRACK'}</span>
-                <span style={{ flex: 1 }}><b>{p.title}</b><br /><span className="sub">{STAGE_B[p.pstatus] ?? 'POM line identified'} · {p.sponsor ?? 'No sponsor'} · {progName(p.program_code)}</span></span>
+                <span style={{ flex: 1 }}><b>{p.title}</b><br /><span className="sub">{STAGE_B[p.pstatus] ?? 'POM line identified'} · {p.sponsor ?? 'No sponsor'} · <ProgramLink code={p.program_code} name={progName(p.program_code)} full /></span></span>
                 <span className="mini-track" style={{ width: 80 }}><span style={{ width: `${100 * p.g2done / p.g2total}%`, background: p.risk === 'HIGH' ? '#CE0F3E' : '#2F7D5C' }} /></span>
                 <span className="mono sm" style={{ width: 34, textAlign: 'right' }}>{p.g2done}/{p.g2total}</span>
               </div>

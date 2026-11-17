@@ -5,22 +5,27 @@ export type Code = 'K' | 'R' | 'O' | 'O*' | '—';
 /** Who owes what at each gate. cells index: Gate 0..4, then Stage 5 annual review.
     `crit` maps a gate to the Hub's gate criteria (by ord) that evidence the obligation, so it can be tracked per project.
     `decides` = the obligation is met by recording the gate decision itself. */
-export const MATRIX: { key: string; actor: string; cells: [Code, string][]; crit?: Record<number, number[]>; decides?: boolean; hub?: boolean }[] = [
-  { key: 'J68_DIR', actor: 'J68 Director', decides: true, cells: [
+/** `post`: a Hub proposal for the actor's obligation after Gate 4 (Stage 5), tracked from realization data (`postTrack`) instead of the ESF's Stage 5 cell. */
+export type PostTrack = 'REVIEWS' | 'RD_ACTIONS' | 'REPORTING' | 'J8_VALIDATE' | 'ADOPTION';
+export const MATRIX: { key: string; actor: string; cells: [Code, string][]; crit?: Record<number, number[]>; decides?: boolean; hub?: boolean; post?: [Code, string]; postTrack?: PostTrack }[] = [
+  { key: 'J68_DIR', actor: 'J68 Director', decides: true, postTrack: 'REVIEWS',
+    post: ['R', 'Hub proposal: J68 co-chairs each realization review with the operational owner at 6, 12 and 24 months after transition. R&D stays engaged until the value is proven.'], cells: [
     ['K', 'J68 Director must personally approve Gate 0 passage and sign the co-sponsor LOI acceptance.'],
     ['K', 'J68 Director chairs Gate 1 review and makes advance/project exit decision based on TRA findings.'],
     ['K', 'J68 Director must certify ROI model and confirm financial path before Gate 2 passage.'],
     ['K', 'J68 Director must co-sign Gate 3 commitment document alongside functional directorate SES. Should not be delegated.'],
     ['R', 'J68 Director confirms J68 has zero remaining obligations and formally closes the portfolio entry.'],
     ['—', 'J68 is fully closed out at Stage 5. No ongoing role.']] },
-  { key: 'PM', actor: 'J68 Project Manager', crit: { 0: [2, 3, 4, 5], 1: [4], 2: [1, 3], 3: [2], 4: [5] }, cells: [
+  { key: 'PM', actor: 'J68 Project Manager', postTrack: 'RD_ACTIONS',
+    post: ['R', 'Hub proposal: R&D owns the corrective actions assigned to it at realization reviews (fixes, retraining material, follow-on scoping) until the owner closes tracking.'], crit: { 0: [2, 3, 4, 5], 1: [4], 2: [1, 3], 3: [2], 4: [5] }, cells: [
     ['R', 'PM owns Gate 0 package: problem statement, co-sponsor LOI, value path declaration, ROM estimate.'],
     ['R', 'PM manages TRA coordination, site visits, and Final S&T Report. Accountable for all Phase I deliverables.'],
     ['R', 'PM owns all SE milestone reviews, ROI quantification, and financial path documentation through PRR.'],
     ['R', 'PM prepares Gate 3 commitment package and coordinates all signatories. Accountable for PPBE calendar alignment.'],
     ['R', 'PM delivers technical handoff package, completes lessons learned, and confirms J68 obligation closeout.'],
     ['—', 'PM role ends at Gate 4. No Stage 5 obligations.']] },
-  { key: 'COSPONSOR', actor: 'Functional Co-Sponsor (SES)', crit: { 0: [1], 1: [5], 2: [4], 3: [1], 4: [1, 3, 4] }, cells: [
+  { key: 'COSPONSOR', actor: 'Functional Co-Sponsor (SES)', postTrack: 'REPORTING',
+    post: ['K', 'Hub proposal: the operational owner reports benefit monthly against the Gate 4 baseline (not annually against Gate 0), and hosts the realization reviews.'], crit: { 0: [1], 1: [5], 2: [4], 3: [1], 4: [1, 3, 4] }, cells: [
     ['K', 'SES must sign LOI — not delegate it. Verbal support is insufficient. LOI commits them to monthly engagement and eventual value path commitment.'],
     ['R', 'Co-sponsor facilitates vendor site visit, provides operational input to CONOPS review, and attends Gate 1 review.'],
     ['R', 'Co-sponsor must reaffirm commitment at Gate 2 and declare which financial path (A or B) they intend to pursue.'],
@@ -33,7 +38,8 @@ export const MATRIX: { key: string; actor: string; cells: [Code, string][]; crit
     ['O', 'JHU-APL may conduct a follow-on assessment if Phase II scope changed significantly from Phase I. Not always required.'],
     ['—', 'JHU-APL role ends at Phase II unless specifically engaged for Phase III validation.'],
     ['—', 'Not applicable.'], ['—', 'Not applicable.']] },
-  { key: 'J8', actor: 'J8 Finance / Resource Mgmt', crit: { 2: [2], 4: [3] }, cells: [
+  { key: 'J8', actor: 'J8 Finance / Resource Mgmt', postTrack: 'J8_VALIDATE',
+    post: ['R', 'Hub proposal: J8 validates reported benefit each quarter, so realized ROI rests on checked numbers.'], crit: { 2: [2], 4: [3] }, cells: [
     ['—', 'J8 is not engaged at Gate 0.'],
     ['—', 'J8 is not a required participant at Gate 1.'],
     ['R', 'J8 Finance must certify the ROI quantification model before Gate 2 passage. This is an essential requirement — PM cannot self-certify.'],
@@ -54,7 +60,8 @@ export const MATRIX: { key: string; actor: string; cells: [Code, string][]; crit
     ['R', 'J7 must confirm Phase III contracting strategy is consistent with the financial path (WCF service contract vs. procurement).'],
     ['R', 'J7 executes any final contract modifications for enterprise transition.'],
     ['—', 'Contract performance monitoring transfers to operational owner.']] },
-  { key: 'J1', actor: 'J1 Human Capital (Hub addition)', hub: true, crit: { 0: [6], 2: [6], 3: [6], 4: [6] }, cells: [
+  { key: 'J1', actor: 'J1 Human Capital (Hub addition)', hub: true, postTrack: 'ADOPTION',
+    post: ['R', 'Hub proposal: J1 measures adoption at 30, 90 and 180 days after go-live, and owns workforce actions from realization reviews.'], crit: { 0: [6], 2: [6], 3: [6], 4: [6] }, cells: [
     ['R', 'J1 screens the staffing plan and the workforce the project will touch (white paper §3.1).'],
     ['—', 'Not required at Gate 1.'],
     ['R', 'J1 runs the Change Management Impact Assessment — the workforce readiness check.'],

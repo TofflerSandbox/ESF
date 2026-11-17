@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api, qs } from '../api';
 import { useMeta } from '../App';
-import { ErrorBox, Loading, PH_SHORT, PhaseChip, StatusChip, d10, go, useAsync } from '../ui';
+import { ErrorBox, Loading, PH_SHORT, PhaseChip, StatusChip, d10, go, useAsync, ProgramLink } from '../ui';
 
 /** Admin work queue: confirm or correct the ESF phase suggested for each imported project. */
 export function Triage() {
@@ -45,7 +45,7 @@ function Row({ p, admin, onConfirm }: { p: any; admin: boolean; onConfirm: (esh:
     <tr>
       <td className="mono code" onClick={() => go('#/p/' + p.esh_id)}>{p.esh_id}</td>
       <td className="ttl" onClick={() => go('#/p/' + p.esh_id)}>{p.title}</td>
-      <td className="mono sm">{p.program_code}</td>
+      <td className="mono sm"><ProgramLink code={p.program_code} /></td>
       <td><StatusChip s={p.status_code} /></td>
       <td className="mono sm">{d10(p.pop_start)}<br />{d10(p.pop_end)}</td>
       <td><PhaseChip p={p} /></td>

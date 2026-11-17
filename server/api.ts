@@ -11,6 +11,8 @@ import { registerOps } from './ops.js';
 import { registerAssist } from './assist.js';
 import { registerRoiAsk } from './roiAsk.js';
 import { registerOwnership } from './ownership.js';
+import { registerPrograms } from './programs.js';
+import { onGate4Pass, registerRealization, snapshotValue } from './realization.js';
 import { DOC_TYPES } from './esfContent.js';
 
 type User = { id: number; name: string; role: 'ADMIN' | 'PM' | 'AUTHORITY' | 'VIEWER' | 'J1' | 'SPONSOR'; person_id: number | null; org_id: number | null };
@@ -351,8 +353,11 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       const stop = b.outcome === 'SUNSET' || b.outcome === 'DESCOPE';
       if (stop && (!b.exit_reason || !b.technical_result)) throw new HttpError(400, 'A sunset or descope needs a reason and a technical result, so exits can be analysed');
       const date = b.decided_at ?? today();
-      await tx.query('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by, exit_reason, technical_result) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-        [p.id, gate, b.outcome, date, me.role === 'AUTHORITY' ? me.name : 'Recorded by admin', b.rationale, me.name, stop ? b.exit_reason : null, stop ? b.technical_result : null]);
+      const dec = (await tx.query<any>('INSERT INTO gate_decision (project_id, gate, outcome, decided_at, authority, rationale, recorded_by, exit_reason, technical_result) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
+        [p.id, gate, b.outcome, date, me.role === 'AUTHORITY' ? me.name : 'Recorded by admin', b.rationale, me.name, stop ? b.exit_reason : null, stop ? b.technical_result : null])).rows[0];
+      // freeze the value claim and cost at every decision; passing Gate 4 also freezes the realized-value baseline and schedules realization reviews
+      await snapshotValue(tx, p.id, gate, dec.id, b.outcome, date);
+      if (b.outcome === 'PASS' && gate === 4) await onGate4Pass(tx, p.id, date);
       let phase = p.esf_phase, status = p.esf_status;
       if (b.outcome === 'PASS') {
         phase = gate + 1; status = phase === 5 ? 'AT_SCALE' : 'ACTIVE';
@@ -374,6 +379,8 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   registerAssist(app, db, { wrap });
   registerRoiAsk(app, db, { wrap });
   registerOwnership(app, db, { wrap });
+  registerPrograms(app, db, { wrap, HttpError });
+  registerRealization(app, db, { wrap, requireRole, canEdit, projectByEsh, HttpError });
 
   /* ── funding, value case, pathways ── */
   const Funding = z.object({ fy: z.number().int().min(2015).max(2040), appropriation: z.enum(['RDT&E BA3', 'RDT&E BA6', 'O&M', 'WCF', 'Procurement']),

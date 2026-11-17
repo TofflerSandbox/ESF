@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useSort } from '../sort';
-import { Card, Donut, ErrorBox, GroupBars, Help, Loading, PH_COL, PH_SHORT, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Card, Donut, ErrorBox, GroupBars, Help, Loading, PH_COL, PH_SHORT, VALUE_PATH, go, money, useAsync, ProgramLink } from '../ui';
+import { PromiseVsDelivery } from './Realization';
 
 const $ = (v: number) => (Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : money(v).replace('.00M', 'M'));
 const x = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)}×`);
@@ -151,7 +152,7 @@ function AskRoi({ horizon, onLens, onClose }: { horizon: number; onLens: (l: Len
                       <span className="as-hit-top">
                         <span className="mono code">{p.esh_id}</span>
                         {real ? <StatusChip s={p.status} map={a.status} /> : <span className="sm"><span className="phdot" style={{ background: PH_COL[p.phase ?? 0] }} />{PH_SHORT[p.phase ?? 0]}</span>}
-                        {p.program_code && <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>{p.program_code}</span>}
+                        {p.program_code && <ProgramLink code={p.program_code} />}
                       </span>
                       <span className="as-ttl">{p.title}</span>
                       <span className="as-snip">{real
@@ -233,6 +234,8 @@ function Realized({ d }: { d: any }) {
           lines: [`${pc(p.planned ? p.realized / p.planned : null)} of the ${$(p.planned)} planned`, `${p.n} projects · ${back(p.cost ? p.realized / p.cost : null)} back per $ so far`],
         }))} />
 
+      <PromiseVsDelivery />
+
       <div className="grid2">
         <Card title="The enterprise ledger" right={<span className="hint">cumulative benefit, all fielded projects · last 24 months</span>}>
           <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto' }}>
@@ -278,7 +281,7 @@ function Realized({ d }: { d: any }) {
               <Th k="realized" num>Delivered</Th><Th k="realization" num>Of plan</Th><Th k="roi" num>Back per $</Th><Th k="payback" num>Payback</Th><Th k="status">Status</Th></tr></thead>
             <tbody>{sorted.map((p: any) => (
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)} title={p.note ?? ''}>
-                <td className="ttl">{p.title}<div className="sub mono">{p.esh_id} · {p.program_code ?? '—'} · {p.path ? VALUE_PATH[p.path].l : '—'}</div>{p.note && <div className="sub">{p.note}</div>}</td>
+                <td className="ttl">{p.title}<div className="sub mono">{p.esh_id} · <ProgramLink code={p.program_code} /> · {p.path ? VALUE_PATH[p.path].l : '—'}</div>{p.note && <div className="sub">{p.note}</div>}</td>
                 <td className="sm">{p.owner ?? '—'}</td>
                 <td className="num mono">{p.months}</td>
                 <td className="num">{$(p.cost)}</td><td className="num">{$(p.planned)}</td><td className="num">{$(p.realized)}</td>
@@ -336,13 +339,15 @@ function Prospective({ d, horizon }: { d: any; horizon: number }) {
         Every $1 invested in the {s.liveCount} active projects is projected to return <b>${s.multiple?.toFixed(2)}</b> over {horizon} years, <b>${s.riskMultiple?.toFixed(2)}</b> after allowing for the projects that won't reach scale.
         This is a forecast from the PMs' value cases, {s.annual ? Math.round(100 * s.certifiedAnnual / s.annual) : 0}% of it checked by J8. It becomes an obligation at Gate 4, when it is frozen as the baseline the Realized view tracks.
       </div>
-      <div className="hk-grid fit">
+      <div className="hk-grid three">
         <div className="hk"><span className="hk-l">Invested so far</span><span className="hk-v">{$(s.totalCost)}</span><span className="hk-s">{$(s.j68)} J68 R&D · {$(s.sponsor)} sponsors</span></div>
         <div className="hk"><span className="hk-l">Expected value, {horizon} years</span><span className="hk-v">{$(s.value)}</span><span className="hk-s">{$(s.annual)} a year from {s.withValue} projects with a value case</span></div>
         <div className="hk"><span className="hk-l">Risk-adjusted value</span><span className="hk-v">{$(s.riskAdj)}</span><span className="hk-s">each project's value × its chance of reaching scale</span></div>
         <div className="hk"><span className="hk-l">Return multiple</span><span className="hk-v">{x(s.riskMultiple)}</span>
           <span className="hk-pills"><span className={'pill ' + ((s.riskMultiple ?? 0) >= 1 ? 'good' : 'bad')}>{(s.riskMultiple ?? 0) >= 1 ? 'Returns more than it costs' : 'Below break-even'}</span></span>
           <span className="hk-s">risk-adjusted value ÷ cost · {x(s.multiple)} before risk</span></div>
+        <div className="hk"><span className="hk-l">On the full cost</span><span className="hk-v" style={{ color: (s.fullMultiple ?? 0) >= 1 ? 'var(--spon)' : 'var(--red)' }}>{x(s.fullMultiple)}</span>
+          <span className="hk-s">risk-adjusted value ÷ (spent + {$(s.costToComplete)} still to spend, PM estimates on {s.withCtc} projects)</span></div>
         <div className="hk click" onClick={() => go('#/exits')}><span className="hk-l">Cost of managed exits</span><span className="hk-v">{$(s.exitCost)}</span><span className="hk-s">{s.exits} projects stopped; the price of learning, carried in the whole-program view →</span></div>
       </div>
       <div className="fine">◆ Value cases, funding and gate decisions in this demo are synthetic; in use they come from PMs, J8 and the gate record.</div>
@@ -408,7 +413,7 @@ function Prospective({ d, horizon }: { d: any; horizon: number }) {
               const net = p.riskAdj - p.cost;
               return (
                 <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
-                  <td className="ttl">{p.title}<div className="sub mono">{p.esh_id} · {p.program_code ?? '—'}{p.certified > 0 ? ' · J8 checked' : ''}</div></td>
+                  <td className="ttl">{p.title}<div className="sub mono">{p.esh_id} · <ProgramLink code={p.program_code} />{p.certified > 0 ? ' · J8 checked' : ''}</div></td>
                   <td><span className="phdot" style={{ background: PH_COL[p.phase ?? 0] }} />{PH_SHORT[p.phase ?? 0]}</td>
                   <td>{p.path ? <><span className="phdot" style={{ background: VALUE_PATH[p.path].c }} />{VALUE_PATH[p.path].l}</> : <span className="muted">no value case</span>}</td>
                   <td className="num">{$(p.cost)}</td><td className="num">{p.annual ? $(p.annual) : '—'}</td>

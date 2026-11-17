@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api, qs } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { ErrorBox, Loading, OrgLink, OrgList, PH_COL, PH_NAME, PH_SHORT, d10, go, useAsync } from '../ui';
+import { ErrorBox, Loading, OrgLink, OrgList, PH_COL, PH_NAME, PH_SHORT, d10, go, useAsync, ProgramLink } from '../ui';
 
 /** The expanded lane: one row per project, sortable. */
 function LaneRows({ items, exits }: { items: any[]; exits: boolean }) {
@@ -18,7 +18,7 @@ function LaneRows({ items, exits }: { items: any[]; exits: boolean }) {
           <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)} className={p.esf_source === 'SUGGESTED' ? 'sugg' : ''}>
             <td className="mono code">{p.esh_id}</td>
             <td className="ttl">{p.title}</td>
-            <td className="sm"><b className="mono">{p.program_code ?? '—'}</b> {p.program_code ? <span className="muted">{progName(p.program_code)}</span> : null}</td>
+            <td className="sm"><ProgramLink code={p.program_code} name={progName(p.program_code)} full /></td>
             <td className="sm">{p.sponsor_list?.length ? <OrgList list={p.sponsor_list} /> : <span className="muted">—</span>}</td>
             <td className="sm nowrap">
               {exits ? <span style={{ color: p.esf_status === 'SUNSET' ? 'var(--red)' : 'var(--slate)', fontWeight: 600 }}>{p.esf_status === 'SUNSET' ? 'Sunset' : 'Descoped'}</span>
@@ -58,7 +58,7 @@ export function Pipeline() {
         title={`${p.title}${p.esf_source === 'SUGGESTED' ? ' — phase suggested from workbook data, not yet confirmed' : ''}`}>
         <div className="code">{p.esh_id}{p.esf_status === 'HOLD' && <span style={{ color: 'var(--goldD)' }}> · HOLD</span>}{p.esf_source === 'SUGGESTED' && <span className="sg">suggested</span>}</div>
         <div className="nm">{p.title}</div>
-        <div className="mt"><span>{p.sponsor_list?.[0] ? <OrgLink id={p.sponsor_list[0].id} name={p.sponsor_list[0].name} /> : 'no sponsor'}</span><span className="mono prog">{p.program_code ?? ''}</span></div>
+        <div className="mt"><span>{p.sponsor_list?.[0] ? <OrgLink id={p.sponsor_list[0].id} name={p.sponsor_list[0].name} /> : 'no sponsor'}</span><span className="mono prog"><ProgramLink code={p.program_code} /></span></div>
       </div>
     );
   };

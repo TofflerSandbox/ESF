@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, go, money, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, go, money, useAsync, ProgramLink } from '../ui';
 
 const $ = (v: number) => money(v).replace('.00M', 'M');
 const pc = (v: number | null) => (v == null ? '—' : `${Math.round(100 * v)}%`);
@@ -160,7 +160,7 @@ export function TransitionReadiness() {
           <thead><tr><Th k="title">Project</Th><Th k="phase">Phase</Th><Th k="sponsor">Sponsor</Th><Th k="readiness">Pathway</Th><Th k="receiver">Receiving organization</Th><Th k="funding_line">Funding line</Th><Th k="pom_fy" num>POM year</Th></tr></thead>
           <tbody>{sorted.map((r: any) => (
             <tr key={r.esh_id} onClick={() => go('#/p/' + r.esh_id)}>
-              <td className="ttl">{r.title}<div className="sub mono">{r.esh_id} · {r.program_code ?? '—'}</div></td>
+              <td className="ttl">{r.title}<div className="sub mono">{r.esh_id} · <ProgramLink code={r.program_code} /></div></td>
               <td><span className="phdot" style={{ background: PH_COL[r.phase] }} />{PH_SHORT[r.phase]}{r.phase === 3 && r.sesSigned === false && <div className="sub" style={{ color: 'var(--red)' }}>SES commitment unsigned</div>}</td>
               <td className="sm">{r.sponsors.join(', ') || <span className="muted">none named</span>}</td>
               <td><b style={{ color: R[r.readiness].c }}>{R[r.readiness].l}</b>{r.path && <div className="sub">{r.path === 'A_WCF' ? 'Path A · WCF' : 'Path B · POM'}</div>}{r.missing.length > 0 && <div className="sub" style={{ color: '#D9822B' }}>missing {r.missing.join(', ')}</div>}</td>
