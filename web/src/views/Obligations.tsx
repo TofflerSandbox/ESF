@@ -30,7 +30,7 @@ export function Obligations() {
 
       {g3 && <div className="takeaway">
         At Gate 3 — the funding-commitment gate — co-sponsors have signed for only <b>{g3.met} of {g3.working}</b> projects ({g3.pct}%).
-        {' '}{d.byOrg.filter((o: any) => o.declined > 0).length} sponsoring organizations have declined ownership at Gate 3 at least once — the "WCF perverse incentive" in senior leader decision #7.
+        {' '}{d.byOrg.filter((o: any) => o.declined > 0).length} sponsoring organizations have declined ownership at Gate 3 at least once — the "WCF perverse incentive" in <a href="#/decisions">senior leader decision #7</a>.
       </div>}
 
       <Card title={<>The matrix <Help title="Reading the matrix"><b>K</b> = key decision, cannot be delegated. <b>R</b> = required participation. <b>O</b> = optional or recommended. <b>—</b> = not applicable. Where the Hub records the evidence for an obligation (a gate criterion), the cell shows the share of projects at that gate where it has been delivered.</Help></>} pad={false}>
@@ -96,7 +96,7 @@ export function Obligations() {
           </table>
         </div>
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>Matrix content from the ESF v3.0 guide. The J1 row is a Hub addition (white paper §3.1). ◆ Delivery figures rest on synthetic criteria evidence in this demo.</div>
+      <div className="fine" style={{ marginTop: 8 }}>Obligations as the ESF defines them. The J1 row and the ✚ obligations after transition are Hub additions. ◆ Delivery figures rest on synthetic criteria evidence in this demo.</div>
     </div>
   );
 }

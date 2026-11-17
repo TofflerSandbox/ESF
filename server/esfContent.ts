@@ -1,4 +1,4 @@
-/* Reference content from the Enterprise Scaling Framework v3.0 guide (Toffler Associates draft):
+/* Reference content for the Enterprise Scaling Framework:
    the Stakeholder Obligation Matrix and the 11 Senior Leader Decisions. */
 
 export type Code = 'K' | 'R' | 'O' | 'O*' | '—';
@@ -62,7 +62,7 @@ export const MATRIX: { key: string; actor: string; cells: [Code, string][]; crit
     ['—', 'Contract performance monitoring transfers to operational owner.']] },
   { key: 'J1', actor: 'J1 Human Capital (Hub addition)', hub: true, postTrack: 'ADOPTION',
     post: ['R', 'Hub proposal: J1 measures adoption at 30, 90 and 180 days after go-live, and owns workforce actions from realization reviews.'], crit: { 0: [6], 2: [6], 3: [6], 4: [6] }, cells: [
-    ['R', 'J1 screens the staffing plan and the workforce the project will touch (white paper §3.1).'],
+    ['R', 'J1 screens the staffing plan and the workforce the project will touch.'],
     ['—', 'Not required at Gate 1.'],
     ['R', 'J1 runs the Change Management Impact Assessment — the workforce readiness check.'],
     ['R', 'J1 adds the change management statement to the DCG brief.'],

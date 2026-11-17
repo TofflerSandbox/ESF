@@ -10,8 +10,8 @@ export const PHASES = [
   { n: 5, short: 'Stage 5', name: 'At Scale', design: [0, 0] },
 ] as const;
 
-/** Gate criteria — taken from the ESH prototype (spec §6). Placeholder until the ESF spec v0.1 is in hand.
-    `owner: 'J1'` rows are J1's roles in the ESF (white paper §3.1): only J1 (or the admin) can close them.
+/** Gate criteria, by gate. Configurable per deployment in the roadmap.
+    `owner: 'J1'` rows are J1's roles at the gates: only J1 (or the admin) can close them.
     `owner: 'SPONSOR'` rows are the sponsoring organization's own commitments: the sponsor signs them in the Hub (or the admin records them).
     `proposal: true` rows are Hub proposals to the ESF, not yet ESF policy: flagged in the UI, and only a gate authority can waive one. */
 export type CritOwner = 'J68' | 'J1' | 'SPONSOR';

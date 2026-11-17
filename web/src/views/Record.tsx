@@ -249,7 +249,7 @@ export function Record({ esh }: { esh: string }) {
             })}
             {r.paths.length === 0 && <div className="note">No pathway declared.</div>}
             {(r.canEdit || r.canSponsor) && <PathForm onSave={(b) => act('/pathways', 'POST', b, 'Pathway declared')} />}
-            <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked (rule R6).</div>
+            <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked.</div>
           </Card>
 
           <Card title="ESF history">

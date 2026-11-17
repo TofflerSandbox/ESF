@@ -301,7 +301,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       const p = await projectByEsh(tx, (req.params as any).esh);
       const d = (await tx.query<any>('SELECT * FROM criterion_def WHERE id=$1', [Number((req.params as any).cid)])).rows[0];
       if (!d) throw new HttpError(404, 'No such criterion');
-      // J1-owned criteria (white paper §3.1) are closed by J1; sponsor-owned ones are signed by the sponsoring organization; everything else by the PM.
+      // J1-owned criteria are closed by J1; sponsor-owned ones are signed by the sponsoring organization; everything else by the PM.
       // A sponsor's commitment or a Hub proposal can only be waived by a gate authority: nobody waives their own commitment.
       if (b.status === 'WAIVED' && (d.owner === 'SPONSOR' || d.proposal)) requireRole(me, 'AUTHORITY', 'ADMIN');
       else if (d.owner === 'J1') requireRole(me, 'J1', 'ADMIN');
@@ -420,7 +420,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   }));
 
   // The PM (or the sponsor) declares a pathway; only the sponsoring organization commits it, and a commitment must name
-  // who receives it, the line that funds it, and (Path B) the POM year. Rule R6: status only moves forward.
+  // who receives it, the line that funds it, and (Path B) the POM year. Status only moves forward, and a commitment is locked.
   const PathDetail = { receiver_org_id: z.number().int().positive().nullable().optional(), funding_line: z.string().min(3).max(200).nullable().optional(),
     pom_fy: z.number().int().min(2026).max(2040).nullable().optional() };
   const Path = z.object({ path: z.enum(['A_WCF', 'B_POM']), mechanism: z.string().min(3).max(300), ...PathDetail }).strict();
@@ -444,7 +444,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       const t = (await tx.query<any>('SELECT * FROM transition_pathway WHERE id=$1 AND project_id=$2', [Number((req.params as any).pid), p.id])).rows[0];
       if (!t) throw new HttpError(404, 'No such pathway');
       const order = ['DECLARED', 'COMMITTED', 'ACTIVE'];
-      if (order.indexOf(b.status) !== order.indexOf(t.status) + 1) throw new HttpError(409, `Pathway is ${t.status}; can only advance one step (rule R6: committed declarations are locked)`);
+      if (order.indexOf(b.status) !== order.indexOf(t.status) + 1) throw new HttpError(409, `Pathway is ${t.status}; can only advance one step, and a commitment is locked once made`);
       const next = { receiver_org_id: b.receiver_org_id ?? t.receiver_org_id, funding_line: b.funding_line ?? t.funding_line, pom_fy: t.path === 'B_POM' ? b.pom_fy ?? t.pom_fy : null };
       if (b.status === 'COMMITTED') {
         const missing = [!next.receiver_org_id && 'a receiving organization', !next.funding_line && 'a funding line', t.path === 'B_POM' && !next.pom_fy && 'a POM year'].filter(Boolean);
@@ -456,7 +456,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       return { ok: true };
     });
   }));
-  // A commitment made before the Hub asked for receiver, line and POM year can have its blanks filled in; filled fields stay locked (R6).
+  // A commitment made before the Hub asked for receiver, line and POM year can have its blanks filled in; filled fields stay locked.
   app.patch('/api/projects/:esh/pathways/:pid', wrap(async (req, me) => {
     const b = z.object(PathDetail).strict().parse(req.body);
     return db.transaction(async tx => {
@@ -466,7 +466,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       if (!t) throw new HttpError(404, 'No such pathway');
       if (b.pom_fy != null && t.path !== 'B_POM') throw new HttpError(400, 'A POM year applies only to Path B (POM); Path A recovers cost through a WCF rate');
       const locked = (Object.keys(b) as (keyof typeof b)[]).filter(k => t.status !== 'DECLARED' && t[k] != null && b[k] !== t[k]);
-      if (locked.length) throw new HttpError(409, `Pathway is ${t.status}; ${locked.join(', ')} already committed (rule R6)`);
+      if (locked.length) throw new HttpError(409, `Pathway is ${t.status}; ${locked.join(', ')} already committed and locked`);
       await tx.query('UPDATE transition_pathway SET receiver_org_id=coalesce($2, receiver_org_id), funding_line=coalesce($3, funding_line), pom_fy=coalesce($4, pom_fy) WHERE id=$1',
         [t.id, b.receiver_org_id ?? null, b.funding_line ?? null, b.pom_fy ?? null]);
       await audit(tx, me.name, 'project', p.esh_id, 'PATHWAY_DETAIL', { receiver_org_id: t.receiver_org_id, funding_line: t.funding_line, pom_fy: t.pom_fy }, b);

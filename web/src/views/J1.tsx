@@ -53,7 +53,7 @@ export function J1() {
 
 
       <div className="grid2" style={{ marginTop: 14 }}>
-        <Card title={<>J1 at the gates <Help title="J1 at the gates">{PRIMER.gates}</Help></>} id="gates" right={<span className="mono">white paper §3.1</span>}>
+        <Card title={<>J1 at the gates <Help title="J1 at the gates">{PRIMER.gates}</Help></>} id="gates">
           <table className="gh-tbl">
             <thead><tr><th>GATE</th><th>J1 ROLE</th><th>WORKING IT NOW</th><th>MET</th><th>NOT ASSESSED</th></tr></thead>
             <tbody>{d.gates.map((g: any) => (

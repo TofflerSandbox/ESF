@@ -82,7 +82,7 @@ export function ProcessMap({ initial }: { initial?: number }) {
         </div>
       </Card>
 
-      <div className="note" style={{ marginTop: 10 }}>Adapted from the Enterprise Scaling Framework v3.0 interactive guide (Toffler Associates draft). Gate criteria the Hub enforces are configured separately and may differ in wording.</div>
+      <div className="note" style={{ marginTop: 10 }}>Gate criteria the Hub enforces are configured separately and may differ in wording.</div>
 
       {(doc || exitIdx != null) && (
         <div className="modal-bg" onClick={() => { setDoc(null); setExitIdx(null); }}>

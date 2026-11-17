@@ -1,5 +1,4 @@
-/* Process Map content — adapted from the Enterprise Scaling Framework v3.0 interactive guide
-   (Toffler Associates draft, "Process Map — Project Journey"). Index = ESF phase 0..5. */
+/* Process map content: the project journey through the Enterprise Scaling Framework. Index = ESF phase 0..5. */
 
 export type PMItem = { kind: 'check' | 'note' | 'warn'; text: string; docs?: string[] };
 export type PMStage = {

@@ -76,7 +76,7 @@ Put customer-specific settings in `esh.config.local.json`, which is git-ignored 
   - A gate decision requires a confirmed phase.
   - A gate can PASS only when every criterion is closed. Non-waivable criteria can never be WAIVED, and change-management criteria can be closed only by that role.
   - Marking a criterion MET requires an evidence reference.
-- **Transition pathways** only advance DECLARED → COMMITTED → ACTIVE (rule R6). The PM or sponsor declares; only the sponsoring organization commits, and a commitment must name the receiving organization, the funding line and (Path B) the POM year.
+- **Transition pathways** only advance DECLARED → COMMITTED → ACTIVE, and a commitment is locked once made. The PM or sponsor declares; only the sponsoring organization commits, and a commitment must name the receiving organization, the funding line and (Path B) the POM year.
 - **Sponsor commitments** are signed only by the sponsoring organization's seat (or the admin); nobody waives their own commitment, so only a gate authority can.
 - **Gate decisions** freeze a value snapshot; passing Gate 4 also freezes the realized-value baseline and schedules realization reviews. Benefit reports come from the operational owner; a J8-validated month is locked; corrective action needs an owned action.
 - **Gate 0 duplication check** (Hub proposal): the ESF's "No disqualifying duplication" can be met only when every likely overlap in the portfolio is linked or dismissed; dismissing or marking a duplicate needs a reason on record.

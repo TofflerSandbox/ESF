@@ -35,7 +35,7 @@ export function Decisions() {
           <div key={k} className={'hk click' + (filter === k ? ' sel' : '')} onClick={() => setFilter(filter === k ? null : k)}><span className="hk-l">{v.l}</span><span className="hk-v" style={{ color: v.c }}>{n(k)}</span><span className="hk-s">click to filter</span></div>
         ))}
       </div>
-      <div className="fine">◆ Decision content is from the ESF v3.0 guide; statuses, owners and dates in this demo are synthetic.</div>
+      <div className="fine">◆ Statuses, owners and dates in this demo are synthetic.</div>
 
       {cats.map(cat => {
         const rows = d.rows.filter((r: any) => r.category === cat && (!filter || r.state.status === filter));

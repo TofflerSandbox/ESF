@@ -56,7 +56,7 @@ export function Funding() {
           <Stack rows={d.byFy.map((x: any) => ({ l: 'FY' + String(x.fy).slice(2), v: { J68: x.j68 / 1e6, Sponsor: x.sponsor / 1e6 } }))} keys={['J68', 'Sponsor']}
             colors={{ J68: '#3F90CB', Sponsor: '#2F7D5C' }} labels={{ J68: 'J68 R&D', Sponsor: 'Sponsor (WCF / O&M)' }} h={250} fmt={v => v.toFixed(0)} />
         </Card>
-        <Card title={<>Transition paths <Help title="Path A and Path B">Every project must name how it will be paid for after J68 steps back, by PRR at the latest. <b>Path A (WCF):</b> the adopting directorate sets a stabilized rate and recovers cost from customer orders. <b>Path B (POM):</b> the sponsor wins a program line in the POM cycle. Declared → Committed (locked, rule R6) → Active.</Help></>} right={<span className="hint">projects by path and stage</span>}>
+        <Card title={<>Transition paths <Help title="Path A and Path B">Every project must name how it will be paid for after J68 steps back, by PRR at the latest. <b>Path A (WCF):</b> the adopting directorate sets a stabilized rate and recovers cost from customer orders. <b>Path B (POM):</b> the sponsor wins a program line in the POM cycle. Declared → Committed (locked once made) → Active.</Help></>} right={<span className="hint">projects by path and stage</span>}>
           <Stack rows={d.pipeline.map((p: any) => ({ l: p.path === 'A_WCF' ? 'Path A — WCF' : 'Path B — POM', v: { DECLARED: p.DECLARED, COMMITTED: p.COMMITTED, ACTIVE: p.ACTIVE } }))}
             keys={['DECLARED', 'COMMITTED', 'ACTIVE']} colors={{ DECLARED: '#C9C3B5', COMMITTED: '#C9A961', ACTIVE: '#2F7D5C' }} labels={{ DECLARED: 'Declared', COMMITTED: 'Committed', ACTIVE: 'Active' }} h={250} />
         </Card>
@@ -89,7 +89,7 @@ export function Funding() {
         </Card>
       </div>
 
-      <Card id="risks" title={<>Fiscal-law risk register <Help title="Fiscal-law risk">Color-of-money rules: R&D (RDT&E) money can pay for development and integration testing, not for running a fielded capability. The register flags R&D money past the Gate 4 handoff (Anti-Deficiency Act exposure), operations funded only by R&D, new R&D after transition, and projects deploying without a committed funding path. Senior leader decision #5 sets the Phase III bridge rules.</Help></>} pad={false}
+      <Card id="risks" title={<>Fiscal-law risk register <Help title="Fiscal-law risk">Color-of-money rules: R&D (RDT&E) money can pay for development and integration testing, not for running a fielded capability. The register flags R&D money past the Gate 4 handoff (Anti-Deficiency Act exposure), operations funded only by R&D, new R&D after transition, and projects deploying without a committed funding path. Senior leader decision #5 (on the Senior leader decisions page) sets the Phase III bridge rules.</Help></>} pad={false}
         right={<span className="tabs"><button className={!kind ? 'on' : ''} onClick={() => setKind(null)}>All {d.risks.length}</button>
           {kinds.map(kk => <button key={kk} className={kind === kk ? 'on' : ''} onClick={() => setKind(kk)}>{KIND[kk]} {d.risks.filter((r: any) => r.kind === kk).length}</button>)}</span>}>
         <div style={{ overflowX: 'auto' }}>

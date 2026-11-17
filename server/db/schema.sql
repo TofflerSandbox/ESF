@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS gate_board_action (
   done boolean NOT NULL DEFAULT false
 );
 
--- ───────────── senior leader decisions (ESF guide) ─────────────
+-- ───────────── senior leader decisions ─────────────
 CREATE TABLE IF NOT EXISTS senior_decision (
   ord int PRIMARY KEY,
   status text NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_REVIEW','DECIDED','DEFERRED')),

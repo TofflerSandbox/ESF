@@ -37,7 +37,7 @@ export const isFlagship = (title: string, s?: { status: string }) =>
 
 const DAY = 864e5;
 const J1_USER = 'J1 Human Capital Transformation';
-/** Demo assumption: J1's gate roles (white paper §3.1) apply to gate decisions from FY26 on; earlier gates show "not assessed". */
+/** Demo assumption: J1's gate roles apply to gate decisions from FY26 on; earlier gates show "not assessed". */
 const J1_ADOPTED = new Date(Date.UTC(2025, 9, 1));
 const ORDS: Record<number, number[]> = Object.fromEntries(Object.entries(CRITERIA).map(([g, l]) => [Number(g), l.map((_, i) => i + 1)]));
 const J1_ORD: Record<number, number> = Object.fromEntries(Object.entries(CRITERIA).flatMap(([g, l]) => l.flatMap((c, i) => (c.owner === 'J1' ? [[Number(g), i + 1]] : []))));
