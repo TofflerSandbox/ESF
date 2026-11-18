@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 export const PH_COL = ['#002060', '#3F90CB', '#3F90CB', '#CE0F3E', '#CE0F3E', '#F9B018'];
 export const PH_TXT = ['#002060', '#2E7CB7', '#2E7CB7', '#B30D36', '#B30D36', '#B07607'];
@@ -238,9 +238,38 @@ export function Stack({ rows, keys, colors, labels, h = 200, fmt = (v: number) =
   );
 }
 
-export const Card = ({ title, right, children, id, pad = true, className }: { title: ReactNode; right?: ReactNode; children: ReactNode; id?: string; pad?: boolean; className?: string }) => (
-  <div className={'card' + (className ? ' ' + className : '')} id={id}><div className="chd"><span>{title}</span>{right && <span>{right}</span>}</div><div className={pad ? 'cbd' : ''}>{children}</div></div>
-);
+/** Writes a rendered table to CSV: what is on screen, with the current filters and sort. Multi-line cells join with " · ". */
+export function exportTable(table: HTMLTableElement, name: string) {
+  // headers: source text (innerText would carry CSS uppercase) without sort arrows; cells: rendered lines joined
+  const cell = (c: Element) => (c.tagName === 'TH' ? (c.textContent ?? '') : (c as HTMLElement).innerText)
+    .replace(/[→↗↕▲▼]/g, '').split('\n').map(s => s.trim()).filter(Boolean).join(' · ');
+  const q = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const rows = [...table.querySelectorAll('tr')].map(tr => [...tr.querySelectorAll('th,td')].map(c => q(cell(c))).join(','));
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'table'}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** A card. Any card holding a data table (table.list) gets an Export CSV button in its header. */
+export function Card({ title, right, children, id, pad = true, className }: { title: ReactNode; right?: ReactNode; children: ReactNode; id?: string; pad?: boolean; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hasTable, setHasTable] = useState(false);
+  // this card's own data table, not one inside a nested card
+  const own = () => [...(ref.current?.querySelectorAll('table.list') ?? [])].find(t => t.closest('.card') === ref.current) as HTMLTableElement | undefined;
+  useEffect(() => { setHasTable(!!own()); });
+  const doExport = () => {
+    const t = own();
+    if (t) exportTable(t, (ref.current?.querySelector('.chd > span') as HTMLElement)?.innerText.split('\n')[0] ?? 'table');
+  };
+  return (
+    <div ref={ref} className={'card' + (className ? ' ' + className : '')} id={id}>
+      <div className="chd"><span>{title}</span>{(right || hasTable) && <span className="chd-r">{right}{hasTable && <button className="csv-btn no-print" onClick={doExport} title="Export this table as CSV">Export CSV</button>}</span>}</div>
+      <div className={pad ? 'cbd' : ''}>{children}</div>
+    </div>
+  );
+}
 
 export const ErrorBox = ({ msg }: { msg: string | null }) => (msg ? <div className="banner err">{msg}</div> : null);
 export const Loading = () => <div className="loading">Loading…</div>;

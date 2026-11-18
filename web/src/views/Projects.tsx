@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api, qs } from '../api';
 import { useMeta } from '../App';
-import { EL_COL, ErrorBox, Loading, OrgList, PhaseChip, StatusChip, d10, go, useAsync, ProgramLink } from '../ui';
+import { EL_COL, ErrorBox, Loading, OrgList, PhaseChip, StatusChip, d10, exportTable, go, useAsync, ProgramLink } from '../ui';
 import { AssistPanel } from './Assist';
 
 const KEYS = ['q', 'fy', 'element', 'program', 'pm', 'status', 'esfStatus', 'source', 'owner', 'priority', 'mine'] as const;
@@ -58,6 +58,7 @@ export function Projects({ initial }: { initial: string }) {
         {meta.me.role === 'PM' && <label className="chk"><input type="checkbox" checked={f.mine === '1'} onChange={e => set('mine', e.target.checked ? '1' : '')} /> My projects</label>}
         <button onClick={() => { setF(Object.fromEntries(KEYS.map(k => [k, ''])) as F); setQ(''); setPin(null); }}>Clear</button>
         <span className="cnt">{data ? rows.length : '…'} projects</span>
+        {data && <button className="csv-btn" onClick={() => { const t = document.querySelector('.proj-main table.list') as HTMLTableElement | null; if (t) exportTable(t, 'projects'); }}>Export CSV</button>}
       </div>
       {pin && <div className="banner info">Showing the {pin.ids.length} project{pin.ids.length === 1 ? '' : 's'} found for <b>“{pin.label}”</b>, best match first <a href="#/projects" onClick={e => { e.preventDefault(); setPin(null); setSort({ k: 'esh_id', dir: 1 }); }} style={{ marginLeft: 8 }}>clear</a></div>}
       {prio && <div className="banner info">Filtered to FY{prio.fy} priority <b>{prio.owner}: {prio.label}</b> <a href="#/projects" style={{ marginLeft: 8 }}>clear</a></div>}

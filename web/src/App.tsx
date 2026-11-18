@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api, getUserId, setUserId } from './api';
-import { ErrorBox, Loading } from './ui';
+import { ErrorBox, Loading, PH_SHORT } from './ui';
 import { Dashboard } from './views/Dashboard';
 import { Pipeline } from './views/Pipeline';
 import { Phase } from './views/Phase';
@@ -28,6 +28,7 @@ import { Program, Programs } from './views/Program';
 import { Overlaps } from './views/Overlap';
 import { MyWork } from './views/MyWork';
 import { Icon } from './icons';
+import { Palette } from './Palette';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -174,14 +175,26 @@ export function App() {
           </label>
         </aside>
         <div className="content">
-          {meta.synthetic.projects > 0 && (
+          <Palette programs={meta.programs}
+            pages={NAV.flatMap(sec => sec.items.filter(n => !n.roles || (n.roles.includes('DEMO') ? demo : n.roles.includes(meta.me.role)))
+              .map(n => ({ label: n.l, icon: n.i, group: sec.g || 'You', href: '#/' + (n.h === 'org/ME' ? `org/${meta.me.org_id}` : n.h) })))} />
+          {(
             <div className="topbar">
-              <label className="demo-pill" title="This instance runs on synthetic demo data. Turn on to tag every generated value and show the guided tour.">
+              <button className="search-btn" onClick={() => dispatchEvent(new Event('esh:palette'))} aria-label="Search (Ctrl+K)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                <span>Search projects, programs, pages…</span><kbd>Ctrl K</kbd>
+              </button>
+              <span style={{ flex: 1 }} />
+              <button className="print-btn" onClick={() => print()} title="Print this page or save it as a PDF">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6 M6 18H4v-7h16v7h-2 M7 14h10v7H7z" /></svg>
+                Print / PDF
+              </button>
+              {meta.synthetic.projects > 0 && <label className="demo-pill" title="This instance runs on synthetic demo data. Turn on to tag every generated value and show the guided tour.">
                 <span className="demo-dot" aria-hidden="true" />Demo data
                 <span className="demo-sw"><input type="checkbox" role="switch" checked={demo} aria-label="Show demo markers"
                   onChange={e => { setDemo(e.target.checked); try { localStorage.setItem('esh.demo', e.target.checked ? '1' : '0'); } catch { /* storage unavailable */ } }} /><i /></span>
                 <span className="demo-l">{demo ? 'Markers on' : 'Show markers'}</span>
-              </label>
+              </label>}
             </div>
           )}
           {meta.synthetic.projects > 0 && demo && (
@@ -190,6 +203,11 @@ export function App() {
               the ESF lifecycle on {meta.synthetic.projects} projects (phases, gates, evidence, funding, value, pathways, audit history), workforce impact, readiness and contacts.
             </div>
           )}
+          <div className="print-head" aria-hidden="true">
+            <b>DLA R&amp;D · Enterprise Scaling Hub</b>
+            <span>{/^phase\/\d$/.test(route) ? PH_SHORT[Number(route.slice(6))] : NAV.flatMap(s => s.items).find(n => n.r === key)?.l ?? (route.startsWith('p/') ? 'Project ' + route.slice(2).split('/')[0] : '')}</span>
+            <span>Printed {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{meta.synthetic.projects > 0 ? ' · demo data' : ''}</span>
+          </div>
           <main>{view}</main>
           <footer className="foot">
             Data: FY{meta.fys.map(f => f.fy).join(' / FY')} R&D alignment workbooks · imported {meta.lastImport ? new Date(meta.lastImport.at).toLocaleString() : '—'} ·

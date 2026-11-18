@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { auditText } from '../auditText';
@@ -18,10 +18,26 @@ const FILL_LABEL: Record<string, string> = {
 };
 const ROLE_L: Record<string, string> = { SPONSOR: 'Sponsors', STAKEHOLDER: 'Stakeholders', TRANSITION_PARTNER: 'Transition partners', ACADEMIA: 'Academia', MILITARY: 'Military services', OSD_MII: 'OSD MII', VENDOR: 'Vendors / industry' };
 
-export function Record({ esh }: { esh: string }) {
+const TABS = [
+  { k: 'overview', l: 'Overview' }, { k: 'gate', l: 'Gate' }, { k: 'value', l: 'Value' }, { k: 'funding', l: 'Funding & transition' },
+  { k: 'people', l: 'People' }, { k: 'documents', l: 'Documents' }, { k: 'history', l: 'History' },
+];
+
+/** A project. `arg` is "ESH-0410" or "ESH-0410/<tab>", so each tab has its own link. */
+export function Record({ esh: arg }: { esh: string }) {
+  const [esh, tabArg] = arg.split('/');
   const meta = useMeta();
   const { data: r, error, reload } = useAsync(() => api(`/projects/${esh}`), [esh, meta.me.id]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [tabSel, setTabSel] = useState<string | null>(TABS.some(t => t.k === tabArg) ? tabArg : null);
+  // once the tab bar sticks to the top, it carries the project's title
+  useEffect(() => {
+    const s = document.querySelector('.rtabs-sentinel'), bar = document.querySelector('.rtabs');
+    if (!s || !bar) return;
+    const io = new IntersectionObserver(([e]) => bar.classList.toggle('stuck', !e.isIntersecting));
+    io.observe(s);
+    return () => io.disconnect();
+  }, [r]);
   if (error) return <><a className="bk" href="#/projects">← Projects</a><ErrorBox msg={error} /></>;
   if (!r) return <Loading />;
   const p = r.project;
@@ -46,6 +62,80 @@ export function Record({ esh }: { esh: string }) {
   const sponsors = r.orgs.filter((o: any) => o.role === 'SPONSOR');
   const primary = r.values.find((v: any) => v.is_primary) ?? r.values[0];
   const F = (...fields: string[]) => (fields.some(f => filled.has(f)) ? <Syn /> : null);
+
+  // tabs: the gate tab is the scorecard while live, realization once at scale, absent after an exit
+  const gateTab = live ? `Gate ${gate}` : p.esf_status === 'AT_SCALE' ? 'Realization' : null;
+  const tab = tabSel && (tabSel !== 'gate' || gateTab) ? tabSel : gateTab ? 'gate' : 'overview';
+  const setTab = (k: string) => { setTabSel(k); history.replaceState(null, '', `#/p/${esh}/${k}`); };
+  const closedN = crits.filter((c: any) => c.status !== 'PENDING').length;
+  const badge = (k: string): string | number | null =>
+    k === 'gate' && live ? `${closedN}/${crits.length}` : k === 'documents' ? (r.documents?.length || null) : null;
+  // the single most useful next move for this project, in plain words
+  const openOwn = crits.filter((c: any) => c.status === 'PENDING');
+  const committed = r.paths.some((t: any) => ['COMMITTED', 'ACTIVE'].includes(t.status));
+  const toGate = <button className="linkbtn" onClick={() => setTab('gate')}>Open the scorecard →</button>;
+  const nextStep: ReactNode = !live ? null
+    : p.esf_status === 'HOLD' ? <>On hold. Close the non-waivable criterion named in the hold, then return to the board. {toGate}</>
+    : openOwn.length === 0 ? <>Every Gate {gate} criterion is closed. It is ready for the gate authority. {toGate}</>
+    : <>{openOwn.length} of {crits.length} Gate {gate} criteria still open. Next: <b>{openOwn[0].text}</b>{openOwn[0].owner === 'SPONSOR' ? ' (the sponsor signs)' : openOwn[0].owner === 'J1' ? ' (J1 closes it)' : ''}.
+      {gate >= 2 && !committed ? ' No transition pathway is committed yet.' : ''} {toGate}</>;
+
+  const PathwaysCard = () => (
+    <Card title="Transition pathways">
+{r.paths.map((t: any) => {
+              const missing = [!t.receiver_org_id && 'receiving organization', !t.funding_line && 'funding line', t.path === 'B_POM' && !t.pom_fy && 'POM year'].filter(Boolean) as string[];
+              return (
+                <div key={t.id} className="path">
+                  <div className="row"><b>Path {t.path === 'A_WCF' ? 'A — WCF' : 'B — POM'}</b><span><Syn on={t.synthetic} /> <Chip c={t.status === 'ACTIVE' ? 'var(--spon)' : t.status === 'COMMITTED' ? 'var(--goldD)' : 'var(--slate)'}>{t.status}</Chip></span></div>
+                  <div className="sub">{t.mechanism}</div>
+                  <div className="path-facts">
+                    <span><i>Receiver</i>{t.receiver ?? <em>not named</em>}</span>
+                    <span><i>Funding line</i>{t.funding_line ?? <em>not named</em>}</span>
+                    {t.path === 'B_POM' && <span><i>POM year</i>{t.pom_fy ? `FY${t.pom_fy}` : <em>not set</em>}</span>}
+                  </div>
+                  {t.status !== 'DECLARED' && missing.length > 0 && <div className="banner warn sm">Committed without a {missing.join(', ')}. It won't meet the Gate 3 Hub proposal until the sponsor completes it.</div>}
+                  <div className="mono sub">{t.committed_at ? 'committed ' + d10(t.committed_at) + ' · ' : ''}{t.path === 'A_WCF' ? '18-mo rate-setting' : 'POM window Jul–Aug'}</div>
+                  {r.canSponsor && t.status === 'DECLARED' && <CommitForm t={t} label="Commit (sponsor)" onSave={(b) => act(`/pathways/${t.id}/advance`, 'POST', { status: 'COMMITTED', ...b }, 'Pathway committed')} />}
+                  {r.canSponsor && t.status === 'COMMITTED' && missing.length > 0 && <CommitForm t={t} label="Complete the commitment" onSave={(b) => act(`/pathways/${t.id}`, 'PATCH', b, 'Commitment completed')} />}
+                  {r.canSponsor && t.status === 'COMMITTED' && missing.length === 0 && <button className="btn sm ghost" onClick={() => act(`/pathways/${t.id}/advance`, 'POST', { status: 'ACTIVE' }, 'Pathway active')}>Mark active (receiver is running it)</button>}
+                  {!r.canSponsor && t.status === 'DECLARED' && <div className="note sm">Only the sponsoring organization can commit this pathway.</div>}
+                </div>
+              );
+            })}
+            {r.paths.length === 0 && <div className="note">No pathway declared.</div>}
+            {(r.canEdit || r.canSponsor) && <PathForm onSave={(b) => act('/pathways', 'POST', b, 'Pathway declared')} />}
+            <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked.</div>
+          </Card>
+  );
+  const RecordCard = () => (
+    <Card title="Record" right={r.canEdit ? <EditToggle p={p} onSave={(b) => act('', 'PATCH', b, 'Project updated')} /> : <span className="mono">read only</span>}>
+      <dl className="kv">
+        <dt>Description</dt><dd>{p.description ?? '—'} {F('description')}</dd>
+        <dt>Program mgr</dt><dd>{r.pm?.name ?? '—'} {F('pm_id')}</dd>
+        <dt>Program</dt><dd>{p.program_code ? <a className="proglink" href={'#/program/' + p.program_code}>{program ? `${program.name} (${program.code})` : p.program_code}</a> : '—'} · {p.element_code ?? '—'} {F('program_code', 'element_code')}</dd>
+        <dt>Status</dt><dd>{p.status_code ? `${p.status_code} · ${STATUS[p.status_code]}` : '—'} {F('status_code')}</dd>
+        <dt>PoP</dt><dd>{d10(p.pop_start)} → {d10(p.pop_end)} {F('pop_start', 'pop_end')}</dd>
+        <dt>Charter</dt><dd>{p.charter ?? '—'} {F('charter')}</dd>
+        <dt>Contracts</dt><dd className="mono">{r.contracts.length ? r.contracts.map((c: any) => <span key={c.number}>{c.number} <Syn on={c.synthetic} /> </span>) : '—'}</dd>
+        <dt>External IDs</dt><dd className="mono">{r.ext.map((x: any) => `${x.system} ${x.value}`).join(', ') || '—'}</dd>
+        <dt>Transition</dt><dd>{[p.transition_phase, p.transition_type].filter(Boolean).join(' · ') || '—'} {F('transition_phase', 'transition_type')}</dd>
+        {p.environment && <><dt>Environment</dt><dd>{p.environment}{p.is_it ? ' · IT' : ''}{p.in_artet ? ' · in ARTET' : ''}</dd></>}
+        {p.okrs && <><dt>OKRs</dt><dd className="mono">{p.okrs}</dd></>}
+        {p.dbx_type && <><dt>D-BX type</dt><dd>{p.dbx_type}</dd></>}
+        {p.taxonomy && <><dt>Taxonomy</dt><dd>{p.taxonomy}</dd></>}
+        {p.capability && <><dt>Capability</dt><dd>{p.capability}</dd></>}
+      </dl>
+    </Card>
+  );
+  const DataCallHistory = () => (
+    <Card title="Data-call history — as reported each year">
+      <table className="gh-tbl"><thead><tr><th>FY</th><th>STATUS</th><th>TRANSITION</th><th>PM</th><th>SOURCE</th></tr></thead>
+        <tbody>{r.snapshots.map((s: any) => (
+          <tr key={s.fy}><td className="mono">FY{s.fy}</td><td>{s.status_code ? `${s.status_code} · ${STATUS[s.status_code]}` : '—'}</td><td>{s.transition_phase ?? '—'}</td><td>{s.pm_name ?? '—'}</td>
+            <td><details><summary className="mono">{s.source_sheet} r{s.source_row}</summary><dl className="kv raw">{Object.entries(s.raw).map(([k, v]) => <Frag key={k}><dt>{k}</dt><dd>{String(v)}</dd></Frag>)}</dl></details></td></tr>
+        ))}</tbody></table>
+    </Card>
+  );
 
   return (
     <>
@@ -119,8 +209,44 @@ export function Record({ esh }: { esh: string }) {
         );
       })()}
 
-      <div className="rgrid">
-        <div className="colstack">
+      <div className="rtabs-sentinel" aria-hidden="true" />
+      <div className="rtabs" role="tablist" aria-label="Project sections">
+        <span className="rtabs-t" title={p.title}><span className="mono">{p.esh_id}</span> {p.title}</span>
+        {TABS.filter(t => t.k !== 'gate' || gateTab).map(t => (
+          <button key={t.k} role="tab" aria-selected={tab === t.k} className={tab === t.k ? 'on' : ''} onClick={() => setTab(t.k)}>
+            {t.k === 'gate' ? gateTab : t.l}{badge(t.k) != null && <span className="rtabs-n">{badge(t.k)}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && (
+        <div className="rgrid">
+          <div className="colstack">
+            {nextStep && <Card title="Next step"><div className="nextstep">{nextStep}</div></Card>}
+            <RelatedWork esh={p.esh_id} />
+            <Card title="Organizations">
+              {Object.keys(ROLE_L).map(role => {
+                const os = r.orgs.filter((o: any) => o.role === role);
+                return os.length ? <div key={role} className="orgrow"><span className="lbl">{ROLE_L[role]}</span><span>{os.map((o: any) => <span key={o.id}><OrgLink id={o.id} name={o.name} chip />{o.synthetic && <Syn />}</span>)}</span></div> : null;
+              })}
+              {r.orgs.length === 0 && <div className="note">No organizations reported in the data call: sponsor, stakeholder and partner columns were blank.</div>}
+            </Card>
+            <Card title="Priority alignment">
+              {r.priorities.length === 0 ? <div className="note">Not aligned to any MSC / J-code priority in the alignment data call.</div> :
+                [...new Set(r.priorities.map((x: any) => x.fy))].map(fy => (
+                  <div key={String(fy)} className="orgrow"><span className="lbl">FY{String(fy)}</span>
+                    <span>{r.priorities.filter((x: any) => x.fy === fy).map((x: any) => <span key={x.id}><a className="org" href={`#/projects?fy=${fy}&priority=${x.id}`}>{x.owner}: {x.label}</a>{x.synthetic && <Syn />}</span>)}</span></div>
+                ))}
+            </Card>
+          </div>
+          <div className="colstack">
+            <RecordCard />
+          </div>
+        </div>
+      )}
+
+      {tab === 'gate' && (
+        <div className="rgrid one">
           {live && (
             <Card title={`Gate ${gate} scorecard — ${crits.filter((c: any) => c.status !== 'PENDING').length}/${crits.length} closed`}
               right={r.criteria && crits.every((c: any) => c.status === 'MET' || (c.status === 'WAIVED' && !c.non_waivable)) ? <b style={{ color: 'var(--spon)' }}>READY FOR AUTHORITY</b> : <span className="mono">IN WORK</span>}>
@@ -136,11 +262,11 @@ export function Record({ esh }: { esh: string }) {
           )}
 
           {p.esf_status === 'AT_SCALE' && <ProjectRealization esh={p.esh_id} />}
+        </div>
+      )}
 
-          <RelatedWork esh={p.esh_id} />
-
-          <Workforce r={r} />
-
+      {tab === 'value' && (
+        <div className="rgrid one">
           <Card title="Value case — why this creates ROI for DLA" id="vcase">
             {r.values.length === 0 && <div className="note">No value case recorded. The workbooks don't carry one; it is declared at Stage 0 and certified by J8 at Gate 2.</div>}
             {r.values.map((v: any) => (
@@ -154,7 +280,12 @@ export function Record({ esh }: { esh: string }) {
             {r.canEdit && <ValueForm onSave={(b) => act('/value-cases', 'POST', b, 'Value case added')} />}
             <ProjectValueHistory key={r.gates.length} esh={p.esh_id} />
           </Card>
+        </div>
+      )}
 
+      {tab === 'funding' && (
+        <div className="rgrid">
+          <div className="colstack">
           <Card title="Funding — the handoff" right={<span><Chip c="var(--j68D)" bg="var(--j68Bg)">J68</Chip> <Chip c="var(--spon)" bg="var(--sponBg)">Sponsor</Chip></span>}>
             {r.funding.length === 0 ? <div className="note">No funding lines. The workbooks carry contract numbers but no obligations by FY/appropriation; enter them here (later: feed from the financial system).</div> : (
               <table className="gh-tbl"><thead><tr><th>FY</th><th>APPROPRIATION</th><th>SOURCE</th><th>AMOUNT</th><th>POP END</th></tr></thead>
@@ -163,36 +294,17 @@ export function Record({ esh }: { esh: string }) {
             )}
             {r.canEdit && <FundingForm onSave={(b) => act('/funding', 'POST', b, 'Funding line added')} />}
           </Card>
-
-          <Card title="Data-call history — as reported each year">
-            <table className="gh-tbl"><thead><tr><th>FY</th><th>STATUS</th><th>TRANSITION</th><th>PM</th><th>SOURCE</th></tr></thead>
-              <tbody>{r.snapshots.map((s: any) => (
-                <tr key={s.fy}><td className="mono">FY{s.fy}</td><td>{s.status_code ? `${s.status_code} · ${STATUS[s.status_code]}` : '—'}</td><td>{s.transition_phase ?? '—'}</td><td>{s.pm_name ?? '—'}</td>
-                  <td><details><summary className="mono">{s.source_sheet} r{s.source_row}</summary><dl className="kv raw">{Object.entries(s.raw).map(([k, v]) => <Frag key={k}><dt>{k}</dt><dd>{String(v)}</dd></Frag>)}</dl></details></td></tr>
-              ))}</tbody></table>
-          </Card>
+          </div>
+          <div className="colstack">
+          <PathwaysCard />
+          </div>
         </div>
+      )}
 
-        <div className="colstack">
-          <Card title="Record" right={r.canEdit ? <EditToggle p={p} onSave={(b) => act('', 'PATCH', b, 'Project updated')} /> : <span className="mono">read only</span>}>
-            <dl className="kv">
-              <dt>Description</dt><dd>{p.description ?? '—'} {F('description')}</dd>
-              <dt>Program mgr</dt><dd>{r.pm?.name ?? '—'} {F('pm_id')}</dd>
-              <dt>Program</dt><dd>{p.program_code ? <a className="proglink" href={'#/program/' + p.program_code}>{program ? `${program.name} (${program.code})` : p.program_code}</a> : '—'} · {p.element_code ?? '—'} {F('program_code', 'element_code')}</dd>
-              <dt>Status</dt><dd>{p.status_code ? `${p.status_code} · ${STATUS[p.status_code]}` : '—'} {F('status_code')}</dd>
-              <dt>PoP</dt><dd className="mono">{d10(p.pop_start)} → {d10(p.pop_end)} {F('pop_start', 'pop_end')}</dd>
-              <dt>Charter</dt><dd>{p.charter ?? '—'} {F('charter')}</dd>
-              <dt>Contracts</dt><dd className="mono">{r.contracts.length ? r.contracts.map((c: any) => <span key={c.number}>{c.number} <Syn on={c.synthetic} /> </span>) : '—'}</dd>
-              <dt>External IDs</dt><dd className="mono">{r.ext.map((x: any) => `${x.system} ${x.value}`).join(', ') || '—'}</dd>
-              <dt>Transition</dt><dd>{[p.transition_phase, p.transition_type].filter(Boolean).join(' · ') || '—'} {F('transition_phase', 'transition_type')}</dd>
-              {p.environment && <><dt>Environment</dt><dd>{p.environment}{p.is_it ? ' · IT' : ''}{p.in_artet ? ' · in ARTET' : ''}</dd></>}
-              {p.okrs && <><dt>OKRs</dt><dd className="mono">{p.okrs}</dd></>}
-              {p.dbx_type && <><dt>D-BX type</dt><dd>{p.dbx_type}</dd></>}
-              {p.taxonomy && <><dt>Taxonomy</dt><dd>{p.taxonomy}</dd></>}
-              {p.capability && <><dt>Capability</dt><dd>{p.capability}</dd></>}
-            </dl>
-          </Card>
-
+      {tab === 'people' && (
+        <div className="rgrid">
+          <div className="colstack"><Workforce r={r} /></div>
+          <div className="colstack">
           <Card title="Points of contact" right={r.contacts.some((c: any) => c.synthetic) ? <Syn /> : undefined}>
             <div className="people">
               <div className="person"><div className="lblr">Program manager (J68)</div><div className="nm">{r.pm?.name ?? '—'}</div><div className="sub">From the data call</div></div>
@@ -207,51 +319,19 @@ export function Record({ esh }: { esh: string }) {
             </div>
             {r.contacts.length === 0 && <div className="note">No sponsor or transition partner was reported in the data call, so there is no one to list.</div>}
           </Card>
+          </div>
+        </div>
+      )}
 
+      {tab === 'documents' && (
+        <div className="rgrid one">
           <ProjectDocuments r={r} onChange={(t, ok = true) => { setMsg({ ok, t }); if (ok) reload(); }} />
+        </div>
+      )}
 
-          <Card title="Organizations">
-            {Object.keys(ROLE_L).map(role => {
-              const os = r.orgs.filter((o: any) => o.role === role);
-              return os.length ? <div key={role} className="orgrow"><span className="lbl">{ROLE_L[role]}</span><span>{os.map((o: any) => <span key={o.id}><OrgLink id={o.id} name={o.name} chip />{o.synthetic && <Syn />}</span>)}</span></div> : null;
-            })}
-            {r.orgs.length === 0 && <div className="note">No organizations reported in the data call: sponsor, stakeholder and partner columns were blank.</div>}
-          </Card>
-
-          <Card title="Priority alignment">
-            {r.priorities.length === 0 ? <div className="note">Not aligned to any MSC / J-code priority in the alignment data call.</div> :
-              [...new Set(r.priorities.map((x: any) => x.fy))].map(fy => (
-                <div key={String(fy)} className="orgrow"><span className="lbl">FY{String(fy)}</span>
-                  <span>{r.priorities.filter((x: any) => x.fy === fy).map((x: any) => <span key={x.id}><a className="org" href={`#/projects?fy=${fy}&priority=${x.id}`}>{x.owner}: {x.label}</a>{x.synthetic && <Syn />}</span>)}</span></div>
-              ))}
-          </Card>
-
-          <Card title="Transition pathways">
-            {r.paths.map((t: any) => {
-              const missing = [!t.receiver_org_id && 'receiving organization', !t.funding_line && 'funding line', t.path === 'B_POM' && !t.pom_fy && 'POM year'].filter(Boolean) as string[];
-              return (
-                <div key={t.id} className="path">
-                  <div className="row"><b>Path {t.path === 'A_WCF' ? 'A — WCF' : 'B — POM'}</b><span><Syn on={t.synthetic} /> <Chip c={t.status === 'ACTIVE' ? 'var(--spon)' : t.status === 'COMMITTED' ? 'var(--goldD)' : 'var(--slate)'}>{t.status}</Chip></span></div>
-                  <div className="sub">{t.mechanism}</div>
-                  <div className="path-facts">
-                    <span><i>Receiver</i>{t.receiver ?? <em>not named</em>}</span>
-                    <span><i>Funding line</i>{t.funding_line ?? <em>not named</em>}</span>
-                    {t.path === 'B_POM' && <span><i>POM year</i>{t.pom_fy ? `FY${t.pom_fy}` : <em>not set</em>}</span>}
-                  </div>
-                  {t.status !== 'DECLARED' && missing.length > 0 && <div className="banner warn sm">Committed without a {missing.join(', ')}. It won't meet the Gate 3 Hub proposal until the sponsor completes it.</div>}
-                  <div className="mono sub">{t.committed_at ? 'committed ' + d10(t.committed_at) + ' · ' : ''}{t.path === 'A_WCF' ? '18-mo rate-setting' : 'POM window Jul–Aug'}</div>
-                  {r.canSponsor && t.status === 'DECLARED' && <CommitForm t={t} label="Commit (sponsor)" onSave={(b) => act(`/pathways/${t.id}/advance`, 'POST', { status: 'COMMITTED', ...b }, 'Pathway committed')} />}
-                  {r.canSponsor && t.status === 'COMMITTED' && missing.length > 0 && <CommitForm t={t} label="Complete the commitment" onSave={(b) => act(`/pathways/${t.id}`, 'PATCH', b, 'Commitment completed')} />}
-                  {r.canSponsor && t.status === 'COMMITTED' && missing.length === 0 && <button className="btn sm ghost" onClick={() => act(`/pathways/${t.id}/advance`, 'POST', { status: 'ACTIVE' }, 'Pathway active')}>Mark active (receiver is running it)</button>}
-                  {!r.canSponsor && t.status === 'DECLARED' && <div className="note sm">Only the sponsoring organization can commit this pathway.</div>}
-                </div>
-              );
-            })}
-            {r.paths.length === 0 && <div className="note">No pathway declared.</div>}
-            {(r.canEdit || r.canSponsor) && <PathForm onSave={(b) => act('/pathways', 'POST', b, 'Pathway declared')} />}
-            <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked.</div>
-          </Card>
-
+      {tab === 'history' && (
+        <div className="rgrid">
+          <div className="colstack">
           <Card title="Project history">
             <ul className="tl">
               {[...r.phases.map((x: any) => ({ d: x.entered_at, s: x.synthetic, t: <>Entered {PH_SHORT[x.phase]}{x.exited_at ? ` (exited ${d10(x.exited_at)})` : ''}</> })),
@@ -259,7 +339,9 @@ export function Record({ esh }: { esh: string }) {
                 .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime()).map((e, i) => <li key={i}><span className="d">{d10(e.d)}</span><span>{e.t} <Syn on={e.s} /></span></li>)}
             </ul>
           </Card>
-
+          <DataCallHistory />
+          </div>
+          <div className="colstack">
           <Card title="Audit trail">
             {r.audit.length === 0 ? <div className="note">No changes since import.</div> : (
               <ul className="tl">{r.audit.map((a: any) => {
@@ -269,8 +351,9 @@ export function Record({ esh }: { esh: string }) {
               })}</ul>
             )}
           </Card>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

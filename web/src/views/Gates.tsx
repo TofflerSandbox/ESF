@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Card, ErrorBox, GroupBars, Loading, PH_COL, d10, go, useAsync, ProgramLink } from '../ui';
+import { Card, ErrorBox, GroupBars, Loading, PH_COL, d10, exportTable, go, useAsync, ProgramLink } from '../ui';
 import { HubProposal, SponsorTag } from './Ownership';
 
 const OUT_COL: Record<string, string> = { PASS: '#2F7D5C', HOLD: '#C9A961', SUNSET: '#CE0F3E', DESCOPE: '#8A8378' };
@@ -108,6 +108,8 @@ export function Gates({ initial }: { initial?: number }) {
             </button>
           ))}
           {crit != null && <button className="gx-chip on crit" onClick={() => setCrit(null)}>Criterion #{crit} still open ✕</button>}
+          <span style={{ flex: 1 }} />
+          <button className="csv-btn" onClick={() => { const t = document.querySelector('.gx-list table.list') as HTMLTableElement | null; if (t) exportTable(t, `gate-${G.gate}-${stage}`); }}>Export CSV</button>
         </div>
 
         <div className="gx-body">
