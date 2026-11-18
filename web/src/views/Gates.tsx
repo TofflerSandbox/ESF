@@ -205,7 +205,7 @@ export function Gates({ initial }: { initial?: number }) {
           </div>
         </Card>
       </div>
-      <div className="fine" style={{ marginTop: 8 }}>◆ Gate decisions and criteria evidence in this demo are synthetic. Only confirmed projects are counted; unconfirmed ones are in Phase review.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Gate decisions and criteria evidence in this demo are synthetic. Only confirmed projects are counted; unconfirmed ones are in Phase review.</div>
     </div>
   );
 }

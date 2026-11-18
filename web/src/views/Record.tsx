@@ -89,7 +89,7 @@ export function Record({ esh }: { esh: string }) {
 
       {msg && <div className={'banner ' + (msg.ok ? 'ok' : 'err')} onClick={() => setMsg(null)}>{msg.t}</div>}
       {filled.size > 0 && (
-        <div className="banner gap">
+        <div className="banner gap dm">
           <Syn /> <b>Filled with synthetic values</b> because the FY{lastFy} data call left them blank: {[...filled].map(f => FILL_LABEL[f] ?? f).join(', ')}.
           Each filled value is tagged below.
         </div>

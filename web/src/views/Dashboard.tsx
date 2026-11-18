@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
-import { Bars, Card, Donut, EL_COL, ErrorBox, Insights, Loading, PH_COL, PH_SHORT, Stack, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Bars, Card, Donut, EL_COL, ErrorBox, Insights, Loading, PH_COL, PH_SHORT, Stack, VALUE_PATH, go, money, useAsync, DemoMark } from '../ui';
 
 /** A colour per priority owner (MSCs and J-codes), so the priority chart reads at a glance. */
 const OWNER_COL = ['#27568F', '#2F7D5C', '#C9A961', '#CE0F3E', '#3F90CB', '#8A6B25', '#6B3FA0', '#D9822B', '#16233C', '#6BA37E', '#9B1B2E', '#8A9099'];
@@ -54,7 +54,7 @@ export function Dashboard() {
           const met = k.target != null && k.value != null ? k.value >= k.target : null;
           return (
             <a key={k.key} className="hk" href={k.link} onClick={e => { if (k.link.startsWith('#decisions')) { e.preventDefault(); document.getElementById('decisions')?.scrollIntoView({ behavior: 'smooth' }); } }}>
-              <span className="hk-l">{k.label}{k.source !== 'real' && <sup title="Grows as the Hub is used; synthetic in this demo"> ◆</sup>}</span>
+              <span className="hk-l">{k.label}{k.source !== 'real' && <DemoMark />}</span>
               <span className="hk-v">{fmt(k)}</span>
               <span className="hk-pills">
                 {met != null && <span className={'pill ' + (met ? 'good' : 'bad')}>{met ? 'On target' : `Target ${k.target}%`}</span>}
@@ -65,7 +65,7 @@ export function Dashboard() {
           );
         })}
       </div>
-      <div className="fine">◆ Grows as the Hub is used. In this demo these values are synthetic.</div>
+      <div className="fine dm">Grows as the Hub is used. In this demo these values are synthetic.</div>
       <Insights items={d.insights} />
 
       <div className="grid2">
@@ -87,7 +87,7 @@ export function Dashboard() {
                 ))}
                 <a href="#/roi" className="roi-call">
                   <b>{roi.summary.riskMultiple != null ? `${roi.summary.riskMultiple.toFixed(1)}×` : '—'}</b>
-                  <span>projected return on the {money(roi.summary.totalCost).replace('.00M', 'M')} invested, over 5 years, adjusted for risk ◆</span>
+                  <span>projected return on the {money(roi.summary.totalCost).replace('.00M', 'M')} invested, over 5 years, adjusted for risk<DemoMark /></span>
                 </a>
               </div>
             </div>
@@ -103,7 +103,7 @@ export function Dashboard() {
         <Card title="Who pays at each phase" right={<span className="hint">FY{fy2} funding, $ millions</span>}>
           <Stack rows={fundRows} keys={['J68', 'Sponsor']} colors={{ J68: '#3F90CB', Sponsor: '#2F7D5C' }} labels={{ J68: 'J68 R&D', Sponsor: 'Sponsor (WCF / POM)' }} h={260}
             fmt={v => v.toFixed(v >= 10 ? 0 : 1)} onClick={i => go('#/phase/' + d.fundingByPhase[i].phase)} />
-          <div className="chart-note">Healthy projects shift from J68 R&D money to sponsor money by Phase III. ◆</div>
+          <div className="chart-note">Healthy projects shift from J68 R&D money to sponsor money by Phase III.<DemoMark /></div>
         </Card>
       </div>
 

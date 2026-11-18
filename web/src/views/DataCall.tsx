@@ -57,7 +57,7 @@ export function DataCall() {
           <div className="hk"><span className="hk-l">{c.status === 'OPEN' ? 'Days left' : 'Closed'}</span><span className="hk-v">{c.status === 'OPEN' ? d.daysLeft : d10(c.closed_at)}</span><span className="hk-s">Opened {d10(c.opens_at)} · due {d10(c.due_at)}</span></div>
         </div>
         <div className="dc-bar">{(['APPROVED', 'SUBMITTED', 'RETURNED', 'IN_PROGRESS', 'NOT_STARTED'] as const).map(s => k[s] ? <span key={s} style={{ width: `${100 * k[s] / k.total}%`, background: ST[s].c }} title={`${ST[s].l}: ${k[s]}`} /> : null)}</div>
-        {c.synthetic && <div className="fine">◆ The FY{c.fy} responses are synthetic demo data.</div>}
+        {c.synthetic && <div className="fine dm">The FY{c.fy} responses are synthetic demo data.</div>}
         <Insights items={[
           { t: <><b>{Math.round(100 * (k.SUBMITTED + k.APPROVED) / Math.max(k.total, 1))}%</b> of {k.total} projects submitted{c.status === 'OPEN' && d.daysLeft != null ? `, ${d.daysLeft} days before the ${d10(c.due_at)} deadline` : ''}</> },
           k.SUBMITTED > 0 && { t: `${k.SUBMITTED} responses waiting on J68 review` },

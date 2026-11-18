@@ -37,7 +37,7 @@ export function Documents() {
             <span className="hk-s">{c.complete} of {c.passed} projects that passed have every required document</span></div>
         ))}
       </div>
-      <div className="fine">◆ Document records in this demo are synthetic (no file attached; opening one shows a placeholder). Files you upload are stored locally.</div>
+      <div className="fine dm">Document records in this demo are synthetic (no file attached; opening one shows a placeholder). Files you upload are stored locally.</div>
 
       <div className="grid2">
         <Card title={<>Required documents by gate <Help title="Required documents">Each gate's criteria call for documents: the LOI at Gate 0, the TRA and S&T report at Gate 1, PRR minutes and the J8 ROI certification at Gate 2, the SES-signed funding commitment and ATO at Gate 3, and owner acceptance, closeout and lessons learned at Gate 4. A file is complete when every required document is on file for a project that passed that gate. Waived criteria need no document.</Help></>} pad={false}>

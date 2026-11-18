@@ -26,6 +26,8 @@ import { Tour } from './views/Tour';
 import { Realization } from './views/Realization';
 import { Program, Programs } from './views/Program';
 import { Overlaps } from './views/Overlap';
+import { MyWork } from './views/MyWork';
+import { Icon } from './icons';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -59,23 +61,27 @@ const useHash = () => {
 type NavItem = { h: string; r: string; l: string; i: string; roles?: string[] };
 /** Left navigation. Administration is shown only to the roles that use it: phase review is the admin's onboarding queue,
     the audit log is for the admin and the gate authority (every project record keeps its own audit trail for everyone). */
+const WORK_ROLES = ['ADMIN', 'AUTHORITY', 'SPONSOR', 'J1', 'PM'];
 const NAV: { g: string; items: NavItem[] }[] = [
-  { g: 'Your organization', items: [{ h: 'org/ME', r: 'myorg', l: 'My organization', i: '★', roles: ['SPONSOR'] }] },
-  { g: 'Framework', items: [
-    { h: 'map', r: 'map', l: 'Process map', i: '◇' }, { h: 'decisions', r: 'decisions', l: 'Senior leader decisions', i: '⚖' },
-    { h: 'tour', r: 'tour', l: 'Guided tour', i: '▶', roles: ['DEMO'] },
+  { g: '', items: [
+    { h: 'me', r: 'me', l: 'My work', i: 'inbox', roles: WORK_ROLES },
+    { h: 'org/ME', r: 'myorg', l: 'My organization', i: 'star', roles: ['SPONSOR'] },
   ] },
   { g: 'Portfolio', items: [
-    { h: '', r: 'dash', l: 'Dashboard', i: '▦' }, { h: 'board', r: 'board', l: 'Pipeline', i: '⇶' },
-    { h: 'gates', r: 'gates', l: 'Gates', i: '◆' }, { h: 'boards', r: 'boards', l: 'Gate boards', i: '▤' }, { h: 'exits', r: 'exits', l: 'Managed exits', i: '⤫' },
-    { h: 'projects', r: 'projects', l: 'Projects', i: '☰' }, { h: 'programs', r: 'programs', l: 'Programs', i: '▥' }, { h: 'overlaps', r: 'overlaps', l: 'Overlaps', i: '≈' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: '⌂' },
+    { h: '', r: 'dash', l: 'Dashboard', i: 'grid' }, { h: 'board', r: 'board', l: 'Pipeline', i: 'flow' },
+    { h: 'projects', r: 'projects', l: 'Projects', i: 'list' }, { h: 'programs', r: 'programs', l: 'Programs', i: 'layers' }, { h: 'orgs', r: 'orgs', l: 'Organizations', i: 'building' },
   ] },
-  { g: 'Value & funding', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: '$' }, { h: 'realization', r: 'realization', l: 'Realization reviews', i: '↻' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: '⇄' }] },
-  { g: 'People', items: [{ h: 'j1', r: 'j1', l: 'Workforce & change', i: '◎' }, { h: 'obligations', r: 'obligations', l: 'Stakeholder obligations', i: '▣' }] },
-  { g: 'Data', items: [{ h: 'datacall', r: 'datacall', l: 'Data call', i: '✎' }, { h: 'documents', r: 'documents', l: 'Documents', i: '▧' }, { h: 'health', r: 'health', l: 'Data health', i: '♥' }] },
-  { g: 'Administration', items: [
-    { h: 'triage', r: 'triage', l: 'Phase review', i: '✓', roles: ['ADMIN'] },
-    { h: 'audit', r: 'audit', l: 'Audit log', i: '⧗', roles: ['ADMIN', 'AUTHORITY'] },
+  { g: 'Decisions', items: [
+    { h: 'gates', r: 'gates', l: 'Gates', i: 'gate' }, { h: 'boards', r: 'boards', l: 'Gate boards', i: 'calendar' },
+    { h: 'decisions', r: 'decisions', l: 'Senior leader decisions', i: 'scale' }, { h: 'exits', r: 'exits', l: 'Managed exits', i: 'exit' },
+  ] },
+  { g: 'Value', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: 'trend' }, { h: 'realization', r: 'realization', l: 'Realization reviews', i: 'cycle' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: 'coins' }] },
+  { g: 'Enterprise', items: [{ h: 'overlaps', r: 'overlaps', l: 'Overlaps', i: 'overlap' }, { h: 'obligations', r: 'obligations', l: 'Stakeholder obligations', i: 'handshake' }, { h: 'j1', r: 'j1', l: 'Workforce & change', i: 'people' }] },
+  { g: 'Framework', items: [{ h: 'map', r: 'map', l: 'Process map', i: 'map' }, { h: 'tour', r: 'tour', l: 'Guided tour', i: 'play', roles: ['DEMO'] }] },
+  { g: 'Data & admin', items: [
+    { h: 'datacall', r: 'datacall', l: 'Data call', i: 'edit' }, { h: 'documents', r: 'documents', l: 'Documents', i: 'file' }, { h: 'health', r: 'health', l: 'Data health', i: 'pulse' },
+    { h: 'triage', r: 'triage', l: 'Phase review', i: 'check', roles: ['ADMIN'] },
+    { h: 'audit', r: 'audit', l: 'Audit log', i: 'clock', roles: ['ADMIN', 'AUTHORITY'] },
   ] },
 ];
 
@@ -98,7 +104,8 @@ export function App() {
 
   const key = meta.me.org_id && route === `org/${meta.me.org_id}` ? 'myorg' : route === '' ? 'dash' :route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('program') ? 'programs' :route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];
   let view;
-  if (route.startsWith('p/')) view = <Record key={route} esh={route.slice(2)} />;
+  if (route === 'me') view = <MyWork key={meta.me.id} />;
+  else if (route.startsWith('p/')) view = <Record key={route} esh={route.slice(2)} />;
   else if (route.startsWith('brief/')) view = <Brief esh={route.slice(6)} />;
   else if (/^board(\?|$)/.test(route)) view = <Pipeline />;
   else if (/^phase\/[0-5]$/.test(route)) view = <Phase key={route} ph={Number(route.slice(6))} />;
@@ -130,7 +137,7 @@ export function App() {
 
   return (
     <MetaCtx.Provider value={meta}>
-      <div className="shell">
+      <div className={'shell' + (demo ? ' show-demo' : '')}>
         <aside id="side">
           <a className="brand" href="#/"><b>DLA R&amp;D HUB<span>.</span></b><small>Enterprise Scaling Hub</small></a>
           <nav>
@@ -138,12 +145,12 @@ export function App() {
               const items = sec.items.filter(n => !n.roles || (n.roles.includes('DEMO') ? demo : n.roles.includes(meta.me.role)));
               return items.length ? (
                 <div key={sec.g} className="navsec">
-                  <div className="navg">{sec.g}</div>
+                  {sec.g && <div className="navg">{sec.g}</div>}
                   {items.map(n => (
                     <a key={n.r} href={'#/' + (n.h === 'org/ME' ? `org/${meta.me.org_id}` : n.h)} className={key === n.r ? 'on' : ''}>
-                      <span className="ic" aria-hidden="true">{n.i}</span>{n.l}
+                      <span className="ic"><Icon n={n.i} /></span>{n.l}
                       {n.r === 'triage' && meta.unconfirmed > 0 && <span className="badge" title="Projects whose ESF phase is still a suggestion">{meta.unconfirmed}</span>}
-                      {n.r === 'datacall' && meta.openDataCall && <span className="badge open" title={`FY${meta.openDataCall.fy} data call is open`}>FY{String(meta.openDataCall.fy).slice(2)}</span>}
+                      {n.r === 'datacall' && meta.openDataCall && <span className="badge open" title={`The FY${meta.openDataCall.fy} data call is open`}>Open</span>}
                     </a>
                   ))}
                 </div>
@@ -152,7 +159,11 @@ export function App() {
           </nav>
           <label className="who">
             <span>Acting as</span>
-            <select value={uid ?? ''} onChange={e => { setUserId(Number(e.target.value)); setUid(Number(e.target.value)); setMeta(null); }}>
+            <select value={uid ?? ''} onChange={e => {
+              const id = Number(e.target.value), role = meta.users.find(u => u.id === id)?.role;
+              setUserId(id); setUid(id); setMeta(null);
+              if (role && role !== 'ADMIN' && WORK_ROLES.includes(role)) location.hash = '#/me';   // each role lands on its own work
+            }}>
               {['ADMIN', 'AUTHORITY', 'SPONSOR', 'J1', 'VIEWER', 'PM'].map(role => (
                 <optgroup key={role} label={{ ADMIN: 'J68 admin', AUTHORITY: 'Gate authority', SPONSOR: 'Sponsoring organizations', J1: 'J1 Human Capital', VIEWER: 'Viewer', PM: 'Program managers' }[role]}>
                   {meta.users.filter(u => u.role === role).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -161,12 +172,19 @@ export function App() {
             </select>
             <small>Demo role switcher · production uses single sign-on</small>
           </label>
-          <label className="demo-toggle" title="Show the guided tour of scripted demo stories">
-            <input type="checkbox" checked={demo} onChange={e => { setDemo(e.target.checked); try { localStorage.setItem('esh.demo', e.target.checked ? '1' : '0'); } catch { /* storage unavailable */ } }} /> Demo mode
-          </label>
         </aside>
         <div className="content">
           {meta.synthetic.projects > 0 && (
+            <div className="topbar">
+              <label className="demo-pill" title="This instance runs on synthetic demo data. Turn on to tag every generated value and show the guided tour.">
+                <span className="demo-dot" aria-hidden="true" />Demo data
+                <span className="demo-sw"><input type="checkbox" role="switch" checked={demo} aria-label="Show demo markers"
+                  onChange={e => { setDemo(e.target.checked); try { localStorage.setItem('esh.demo', e.target.checked ? '1' : '0'); } catch { /* storage unavailable */ } }} /><i /></span>
+                <span className="demo-l">{demo ? 'Markers on' : 'Show markers'}</span>
+              </label>
+            </div>
+          )}
+          {meta.synthetic.projects > 0 && demo && (
             <div className="synbar">
               <b>Synthetic demo data.</b> Values tagged <span className="syn">SYNTHETIC</span> are generated for this demo: gaps in the project inventory (status, PoP, sponsors, alignment and more),
               the ESF lifecycle on {meta.synthetic.projects} projects (phases, gates, evidence, funding, value, pathways, audit history), workforce impact, readiness and contacts.

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
-import { Card, ErrorBox, Help, Insights, Loading, Syn, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, Syn, VALUE_PATH, d10, go, money, useAsync } from '../ui';
 import { HubProposal } from './Ownership';
 
 const $ = (v: number | null | undefined) => (v == null ? '—' : money(v).replace('.00M', 'M'));
 const pc = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(100 * v)}%`);
-const MON = (p: string) => new Date(p.slice(0, 7) + '-15').toLocaleString('en-US', { month: 'short', year: '2-digit' });
-const d10 = (s: string | null) => (s ? s.slice(0, 10) : '—');
+const MON = (p: string) => new Date(p.slice(0, 7) + '-15').toLocaleString('en-US', { month: 'short', year: 'numeric' });
 const OWNER_C: Record<string, string> = { 'R&D': '#27568F', SPONSOR: '#2F7D5C', J8: '#8A6B25', J1: '#5B3E8C' };
 
 /* ── on the project record: how the value claim moved from gate to gate, and what is left to spend ── */
@@ -230,7 +229,7 @@ export function Realization() {
         </table>
         {!acts.length && <div className="note" style={{ padding: 14 }}>No open actions.</div>}
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>◆ Baselines, benefit reports, reviews and actions in this demo are synthetic. Realization reviews are a Hub proposal to the ESF, which ends J68's role at Gate 4.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Baselines, benefit reports, reviews and actions in this demo are synthetic. Realization reviews are a Hub proposal to the ESF, which ends J68's role at Gate 4.</div>
     </div>
   );
 }

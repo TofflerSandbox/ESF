@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Card, ErrorBox, Help, Loading, PhaseChip, ProgramLink, Syn, go, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Loading, PhaseChip, ProgramLink, Syn, d10, go, useAsync } from '../ui';
 import { HubProposal } from './Ownership';
 
 const KIND_C: Record<string, string> = { FOLLOW_ON: '#27568F', DUPLICATE: '#CE0F3E', RELATED: '#2F7D5C', NOT_RELATED: '#8A8378' };
@@ -69,7 +69,7 @@ export function RelatedWork({ esh }: { esh: string }) {
         <div key={l.id} className="ov-link" style={{ borderLeftColor: KIND_C[l.kind] }}>
           <span className="ov-kind" style={{ color: KIND_C[l.kind] }}>{l.role}</span>
           <a href={'#/p/' + l.other.esh_id}><b className="mono">{l.other.esh_id}</b> {l.other.title}</a> <PhaseChip p={l.other} />
-          {l.note && <div className="sub">{l.note} · {l.created_by}, {l.created_at} <Syn on={l.synthetic} /></div>}
+          {l.note && <div className="sub">{l.note} · {l.created_by}, {d10(l.created_at)} <Syn on={l.synthetic} /></div>}
           {d.canLink && <button className="link" onClick={() => unlink(l.id)}>remove</button>}
         </div>
       ))}
@@ -161,7 +161,7 @@ export function Overlaps() {
         {!rows.length && <div className="note" style={{ padding: 14 }}>Nothing here.</div>}
         {rows.length > 120 && <div className="note" style={{ padding: 12 }}>Showing the 120 strongest of {rows.length}.</div>}
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>Similarity uses the real titles and descriptions. ◆ Review decisions (links and dismissals) in this demo are synthetic. Checking Gate 0 duplication against the portfolio is a Hub proposal to the ESF.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Similarity uses the real titles and descriptions. Review decisions (links and dismissals) in this demo are synthetic.</div>
     </div>
   );
 }

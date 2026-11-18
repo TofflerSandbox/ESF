@@ -42,9 +42,9 @@ export function Funding() {
         <div className="hk"><span className="hk-l">Paid by sponsors</span><span className="hk-v">{k.sponsorShare}%</span><span className="hk-s">Share of FY{String(d.fy).slice(2)} funding not from J68 R&D</span></div>
         <div className="hk click" onClick={() => document.getElementById('risks')?.scrollIntoView({ behavior: 'smooth' })}><span className="hk-l">Fiscal-law risks</span><span className="hk-v" style={{ color: 'var(--red)' }}>{k.risks}</span><span className="hk-s">{k.critical} critical · see the register</span></div>
       </div>
-      <div className="fine">◆ Funding lines and pathways in this demo are synthetic.</div>
+      <div className="fine dm">Funding lines and pathways in this demo are synthetic.</div>
       <Insights items={[
-        { t: <>POM window opens <b>{new Date(d.pom.open + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</b>; {d.pom.projects.length} Path B projects must clear PRR (Gate 2) first</> },
+        { t: <>POM window opens <b>{new Date(d.pom.open + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</b>; {d.pom.projects.length} Path B projects must clear PRR (Gate 2) first</>, href: '#/phase/2' },
         d.pom.projects.filter((p: any) => p.risk === 'HIGH').length > 0 && { t: `${d.pom.projects.filter((p: any) => p.risk === 'HIGH').length} of them have closed less than half their Gate 2 criteria`, tone: 'warn' },
         { t: `Sponsors carry ${k.sponsorShare}% of FY${String(d.fy).slice(2)} funding` },
         k.risks > 0 && { t: `${k.risks} fiscal-law risk${k.risks === 1 ? '' : 's'} open${k.critical ? `, ${k.critical} critical` : ''}`, tone: 'warn' },

@@ -48,7 +48,7 @@ export function Exits() {
         <div className="hk click" onClick={() => setReason(reason === 'KNOWLEDGE' ? null : 'KNOWLEDGE')}><span className="hk-l">Delivered a report</span><span className="hk-v">{k.knowledge}</span><span className="hk-s">Ended as an S&T report or DTIC publication</span></div>
         <div className="hk"><span className="hk-l">Time before stopping</span><span className="hk-v">{k.medianMonths != null ? Math.round(k.medianMonths) : '—'}<small style={{ fontSize: 16 }}> mo</small></span><span className="hk-s">Median from Phase I start to the stop decision</span></div>
       </div>
-      <div className="fine">◆ Exit reasons and technical results in this demo are synthetic, apart from follow-on projects (matched from real titles) and DTIC reports (from the data call).</div>
+      <div className="fine dm">Exit reasons and technical results in this demo are synthetic, apart from follow-on projects (matched from real titles) and DTIC reports (from the data call).</div>
       <Insights items={d.insights} />
 
       <div className="grid2">

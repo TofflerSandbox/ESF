@@ -68,10 +68,13 @@ export async function exitsData(db: PGlite) {
     useful: count(r => r.next.length > 0 || r.reason === 'KNOWLEDGE' || r.technical === 'MET'),
   };
   const top = byReason[0];
-  const insights: { t: string; tone?: 'warn' | 'good' }[] = [
-    { t: `${pct(kpis.useful, rows.length)}% left something behind: ${continued} follow-ons, ${knowledge} reports, ${worked} worked technically`, tone: 'good' },
-    ...(orphaned ? [{ t: `${orphaned} worked but found no owner to take them on`, tone: 'warn' as const }] : []),
-    ...(top ? [{ t: `Most common reason: ${top.label.toLowerCase()} (${top.n})` }] : []),
+  const $m = (v: number) => `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`;
+  const worst = byProgram.filter(p => p.exits >= 5).sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0))[0];
+  const insights: { t: string; tone?: 'warn' | 'good'; href?: string }[] = [
+    ...(orphaned ? [{ t: `${orphaned} worked but found no owner: ${$m(kpis.orphanedCost)} of R&D that never reached an operator`, tone: 'warn' as const }] : []),
+    ...(worst ? [{ t: `${worst.program} stops ${worst.rate}% of its projects before scale, the highest of any program with 5 or more exits`, tone: 'warn' as const, href: `#/program/${worst.program}` }] : []),
+    { t: `${pct(kpis.useful, rows.length)}% still left something behind: ${continued} follow-ons, ${knowledge} reports, ${worked} that worked technically`, tone: 'good' },
+    ...(top ? [{ t: `Most common reason: ${top.label.toLowerCase()} (${pct(top.n, rows.length)}% of exits)` }] : []),
   ];
   return { asOf: AS_OF.toISOString().slice(0, 10), insights, kpis, byReason, byTech, byGate, byProgram, rows, reasons: EXIT_REASONS, tech: TECH_RESULTS };
 }

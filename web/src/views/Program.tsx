@@ -37,7 +37,7 @@ export function Programs() {
           </table>
         </div>
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>◆ Lifecycle, funding and value data in this demo are synthetic. Programs come from the data-call workbooks.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Lifecycle, funding and value data in this demo are synthetic. Programs come from the data-call workbooks.</div>
     </div>
   );
 }
@@ -173,7 +173,7 @@ export function Program({ code }: { code: string }) {
           {!sorted.length && <div className="note" style={{ padding: 14 }}>No projects match.</div>}
         </div>
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>◆ Lifecycle, funding and value data in this demo are synthetic.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Lifecycle, funding and value data in this demo are synthetic.</div>
     </div>
   );
 }

@@ -152,13 +152,17 @@ export async function homeData(db: PGlite, fy: number, ready: Ready) {
   const biggest = [...stages].sort((a, b) => b.n - a.n)[0];
   const slowest = [...stages].filter(f => f.n >= 5).sort((a, b) => (b.overPct ?? 0) - (a.overPct ?? 0))[0];
   const uncovered = coverage.filter(c => c.live === 0);
-  const insights: { t: string; tone?: 'warn' | 'good' }[] = [
-    ...(biggest ? [{ t: `Most projects are in ${PHASES[biggest.phase].short}: ${biggest.n}${biggest.yearAgo ? `, ${biggest.n >= biggest.yearAgo ? 'up' : 'down'} from ${biggest.yearAgo} a year ago` : ''}` }] : []),
+  // Each insight must say something the tiles don't: a deadline, a cause, a share, or a gap. Each opens the list behind it.
+  const monthsTo = (d: Date) => Math.max(0, Math.round((d.getTime() - AS_OF.getTime()) / MONTH));
+  const pomLabel = nextPom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const insights: { t: string; tone?: 'warn' | 'good'; href?: string }[] = [
+    ...(pomRows.length ? [{ t: `${pomRows.length} Path B projects must clear Gate 2 before the POM window opens ${pomLabel}, ${monthsTo(nextPom)} months out`, tone: 'warn' as const, href: '#/phase/2' }] : []),
+    ...(endingRows.length ? [{ t: `${endingRows.length} contract${endingRows.length === 1 ? ' ends' : 's end'} within 90 days with no one committed to take the work on`, tone: 'warn' as const, href: `#/projects?fy=${fy}` }] : []),
     slowest && (slowest.overPct ?? 0) > 0
-      ? { t: `${PHASES[slowest.phase].short} runs slowest: ${slowest.over} of ${slowest.n} past the ${slowest.design![0]}–${slowest.design![1]} months planned`, tone: 'warn' }
+      ? { t: `${PHASES[slowest.phase].short} runs slowest: ${slowest.overPct}% of its projects are past the ${slowest.design![0]}–${slowest.design![1]} months planned`, tone: 'warn', href: `#/phase/${slowest.phase}` }
       : { t: 'Every phase is moving on schedule', tone: 'good' },
-    readyHere.length ? { t: `${readyHere.length} project${readyHere.length === 1 ? '' : 's'} ready for a gate decision` } : { t: 'No project waiting on a decision' },
-    uncovered.length ? { t: `${uncovered.length} of ${coverage.length} priorities have no project working on them`, tone: 'warn' } : { t: 'Every priority has a project working on it', tone: 'good' },
+    ...(biggest ? [{ t: `${PHASES[biggest.phase].short} holds ${pct(biggest.n, liveRows.length)}% of live work${biggest.yearAgo ? `, ${biggest.n >= biggest.yearAgo ? 'up' : 'down'} from ${biggest.yearAgo} projects a year ago` : ''}`, href: `#/phase/${biggest.phase}` }] : []),
+    uncovered.length ? { t: `${uncovered.length} of ${coverage.length} FY${String(fy).slice(2)} priorities have no project working on them`, tone: 'warn' } : { t: 'Every priority has a project working on it', tone: 'good' },
   ];
 
   return { fy, asOf, insights, kpis, funnel, coverage, fundingByPhase, decisions, health, programs, yieldTrend: yieldRows.map((y: any) => ({ fy: y.fy, pct: yieldPct(y) })) };

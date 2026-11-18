@@ -35,7 +35,7 @@ export function Boards() {
         <div className="hk"><span className="hk-l">Boards held, last 6 months</span><span className="hk-v">{past.length}</span><span className="hk-s">{past.reduce((a: number, b: any) => a + b.decided, 0)} decisions recorded</span></div>
         <div className="hk"><span className="hk-l">Open actions</span><span className="hk-v" style={{ color: openActions ? 'var(--goldD)' : undefined }}>{openActions}</span><span className="hk-s">Assigned at boards, not yet closed</span></div>
       </div>
-      <div className="fine">◆ Boards held before today, and their minutes and actions, are synthetic.</div>
+      <div className="fine dm">Boards held before today, and their minutes and actions, are synthetic.</div>
 
       <Card title="Scheduled" pad={false}>
         {upcoming.length === 0 && <div className="note" style={{ padding: 14 }}>No boards scheduled.</div>}

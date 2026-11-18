@@ -307,7 +307,7 @@ function Realized({ d }: { d: any }) {
           and it is what earns the R&D portfolio its next budget. Keeping them apart stops a strong pipeline from hiding fielded projects that aren't delivering, and vice versa.
         </Help>
       </div>
-      <div className="fine" style={{ marginTop: 6 }}>◆ Baselines and monthly benefit reports in this demo are synthetic.</div>
+      <div className="fine dm" style={{ marginTop: 6 }}>Baselines and monthly benefit reports in this demo are synthetic.</div>
     </>
   );
 }
@@ -348,12 +348,11 @@ function Prospective({ d, horizon }: { d: any; horizon: number }) {
           <span className="hk-s">risk-adjusted value ÷ (spent + {$(s.costToComplete)} still to spend, PM estimates on {s.withCtc} projects)</span></div>
         <div className="hk click" onClick={() => go('#/exits')}><span className="hk-l">Cost of managed exits</span><span className="hk-v">{$(s.exitCost)}</span><span className="hk-s">{s.exits} projects stopped; the price of learning, carried in the whole-program view →</span></div>
       </div>
-      <div className="fine">◆ Value cases, funding and gate decisions in this demo are synthetic; in use they come from PMs, J8 and the gate record.</div>
+      <div className="fine dm">Value cases, funding and gate decisions in this demo are synthetic; in use they come from PMs, J8 and the gate record.</div>
       <Insights items={[
         { t: <>Every $1 invested is projected to return <b>${s.riskMultiple?.toFixed(2)}</b> over {horizon} years after risk (${s.multiple?.toFixed(2)} before)</> },
         s.fullMultiple != null && { t: `On full cost, including ${$(s.costToComplete)} still to spend: ${x(s.fullMultiple)}`, tone: (s.fullMultiple ?? 0) < 1 ? 'warn' : undefined },
         { t: `${s.annual ? Math.round(100 * s.certifiedAnnual / s.annual) : 0}% of projected value is J8-certified; the rest is PM estimate` },
-        { t: 'Each projection becomes the tracked baseline at Gate 4' },
       ]} />
 
       <PathCard title="Projected value, by type of return" hint="expected value a year from active projects · click a type to filter the list"

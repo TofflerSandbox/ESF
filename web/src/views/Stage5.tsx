@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Insights, Loading, OrgLink, ProgramLink, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, OrgLink, ProgramLink, VALUE_PATH, d10, fmtMY, go, money, rel, useAsync } from '../ui';
+import { useMeta } from '../App';
 
 const $ = (v: number | null | undefined) => (v == null ? '—' : money(v).replace('.00M', 'M'));
 const pc = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(100 * v)}%`);
@@ -10,6 +11,7 @@ const isRD = (o: any) => !!o && /J68/.test(o.name);   // still owned by R&D: no 
 /** Stage 5 as the enterprise sees it: who runs each fielded capability, how it is paid for, whether it delivers, whether people use it. */
 export function Stage5() {
   const { data: d, error } = useAsync(() => api('/enterprise'), []);
+  const asOf = new Date(useMeta().asOf);
   const [op, setOp] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [q, setQ] = useState('');
@@ -40,8 +42,11 @@ export function Stage5() {
       <Insights items={[
         { t: <>Reaching about <b>{T.people.toLocaleString()} people</b> across {T.operators} operating organizations</> },
         { t: `Running at ${$(T.runRate)} a year against a ${$(T.baseline)} combined baseline` },
-        noOwner > 0 && { t: `${noOwner} fielded capabilit${noOwner === 1 ? 'y has' : 'ies have'} no operating organization named; still recorded under J68`, tone: 'warn' },
-        T.attention > 0 && { t: `${T.attention} need attention: at risk, not reporting, or a review or action overdue`, tone: 'warn' },
+        (() => {
+          const low = d.operators.filter((o: any) => o.n >= 3 && o.realization != null && !isRD(o)).sort((a: any, b: any) => a.realization - b.realization)[0];
+          return low && low.realization < 0.9 && { t: <><OrgLink id={low.id} name={low.name} /> delivers {pc(low.realization)} of plan across {low.n} capabilities, the lowest of any operator running 3 or more</>, tone: 'warn' as const };
+        })(),
+        T.reviewsDue > 0 && { t: `${T.reviewsDue} realization review${T.reviewsDue === 1 ? '' : 's'} fall due in the next 90 days`, href: '#/realization' },
       ]} />
 
       <div className="grid2">
@@ -93,12 +98,12 @@ export function Stage5() {
                 <td className="ttl">{r.title}<div className="sub mono">{r.esh_id}{r.valuePath ? ` · ${VALUE_PATH[r.valuePath]?.l}` : ''}</div></td>
                 <td className="sm">{r.operator ? <OrgLink id={r.operator.id} name={r.operator.name} /> : <span className="muted">not named</span>}{isRD(r.operator) && <div className="sub" style={{ color: 'var(--red)' }}>no enterprise owner</div>}</td>
                 <td className="sm"><ProgramLink code={r.program_code} el={r.element_code} /></td>
-                <td className="num sm">{r.months != null ? `${r.months} mo` : '—'}<div className="sub">{r.since ? `since ${r.since.slice(0, 7)}` : ''}</div></td>
+                <td className="num sm">{r.months != null ? `${r.months} mo` : '—'}<div className="sub">{r.since ? `since ${fmtMY(r.since)}` : ''}</div></td>
                 <td className="sm">{r.path ? (r.path === 'A_WCF' ? 'WCF rate' : `POM${r.pom_fy ? ' FY' + String(r.pom_fy).slice(2) : ''}`) : <span className="muted">not recorded</span>}{r.funding_line && <div className="sub">{r.funding_line}</div>}</td>
                 <td className="num">{r.planned ? <><span className="mini-track"><span style={{ width: `${Math.min(100, 100 * (r.realization ?? 0))}%`, background: S[r.status]?.c ?? 'var(--slate2)' }} /></span> <span className="mono sm">{pc(r.realization)}</span><div className="sub">{$(r.realized)} of {$(r.planned)}</div></> : <span className="muted">—</span>}</td>
                 <td>{r.status && <span className="rs-chip" style={{ color: S[r.status].c, borderColor: S[r.status].c }}>{S[r.status].l}</span>}{r.note && <div className="sub">{r.note}</div>}</td>
                 <td className="num sm">{r.adoption ? <><b>{r.adoption.pct}%</b><div className="sub">at {r.adoption.day} days</div></> : <span className="muted">not measured</span>}</td>
-                <td className="sm">{r.nextReview ? <span style={{ color: r.nextReview.overdue ? 'var(--red)' : undefined, fontWeight: r.nextReview.overdue ? 700 : 400 }}>{r.nextReview.months}-month · {r.nextReview.due}{r.nextReview.overdue ? ' · overdue' : ''}</span> : <span className="muted">—</span>}
+                <td className="sm">{r.nextReview ? <><span style={{ color: r.nextReview.overdue ? 'var(--red)' : undefined, fontWeight: r.nextReview.overdue ? 700 : 400 }}>{r.nextReview.months}-month · {rel(r.nextReview.due, asOf)}</span><div className="sub">{d10(r.nextReview.due)}</div></> : <span className="muted">—</span>}
                   {r.openActions > 0 && <div className="sub" style={{ color: r.overdueActions ? 'var(--red)' : undefined }}>{r.openActions} open action{r.openActions === 1 ? '' : 's'}{r.overdueActions ? `, ${r.overdueActions} overdue` : ''}</div>}</td>
               </tr>
             ))}</tbody>
@@ -106,7 +111,7 @@ export function Stage5() {
           {!sorted.length && <div className="note" style={{ padding: 14 }}>No capabilities match.</div>}
         </div>
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>◆ Operating organizations, funding lines, benefit and adoption figures in this demo are synthetic, built on the real inventory.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Operating organizations, funding lines, benefit and adoption figures in this demo are synthetic, built on the real inventory.</div>
     </div>
   );
 }

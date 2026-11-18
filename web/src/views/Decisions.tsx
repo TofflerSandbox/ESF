@@ -31,7 +31,7 @@ export function Decisions() {
           <div key={k} className={'hk click' + (filter === k ? ' sel' : '')} onClick={() => setFilter(filter === k ? null : k)}><span className="hk-l">{v.l}</span><span className="hk-v" style={{ color: v.c }}>{n(k)}</span><span className="hk-s">click to filter</span></div>
         ))}
       </div>
-      <div className="fine">◆ Statuses, owners and dates in this demo are synthetic.</div>
+      <div className="fine dm">Statuses, owners and dates in this demo are synthetic.</div>
       <Insights items={[
         { t: <><b>{n('DECIDED')} of 11</b> decided; {n('IN_REVIEW')} in review, {n('OPEN')} open{n('DEFERRED') ? `, ${n('DEFERRED')} deferred` : ''}</> },
         critOpen.length > 0 && { t: <>{critOpen.length} critical decision{critOpen.length === 1 ? '' : 's'} unresolved: {critOpen.map((r: any) => `#${r.ord}`).join(', ')}</>, tone: 'warn' },

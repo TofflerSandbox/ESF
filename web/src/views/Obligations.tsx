@@ -96,7 +96,7 @@ export function Obligations() {
           </table>
         </div>
       </Card>
-      <div className="fine" style={{ marginTop: 8 }}>Obligations as the ESF defines them. The J1 row and the ✚ obligations after transition are Hub additions. ◆ Delivery figures rest on synthetic criteria evidence in this demo.</div>
+      <div className="fine" style={{ marginTop: 8 }}>The J1 row and the ✚ obligations after transition are Hub additions to the ESF matrix.<span className="dm"> Delivery figures rest on synthetic criteria evidence in this demo.</span></div>
     </div>
   );
 }
