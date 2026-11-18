@@ -30,6 +30,8 @@ import { MyWork } from './views/MyWork';
 import { Icon } from './icons';
 import { Palette } from './Palette';
 import { ChangesProvider, WhatsNew } from './WhatsNew';
+import { DemoControls, PageBoundary } from './Safety';
+import { Next } from './views/Next';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -79,7 +81,10 @@ const NAV: { g: string; items: NavItem[] }[] = [
   ] },
   { g: 'Value', items: [{ h: 'roi', r: 'roi', l: 'Return on investment', i: 'trend' }, { h: 'realization', r: 'realization', l: 'Realization reviews', i: 'cycle' }, { h: 'funding', r: 'funding', l: 'Funding & transition', i: 'coins' }] },
   { g: 'Enterprise', items: [{ h: 'overlaps', r: 'overlaps', l: 'Overlaps', i: 'overlap' }, { h: 'obligations', r: 'obligations', l: 'Stakeholder obligations', i: 'handshake' }, { h: 'j1', r: 'j1', l: 'Workforce & change', i: 'people' }] },
-  { g: 'Framework', items: [{ h: 'map', r: 'map', l: 'Process map', i: 'map' }, { h: 'tour', r: 'tour', l: 'Guided tour', i: 'play', roles: ['DEMO'] }] },
+  { g: 'Framework', items: [
+    { h: 'map', r: 'map', l: 'Process map', i: 'map' }, { h: 'tour', r: 'tour', l: 'Guided tour', i: 'play' },
+    { h: 'next', r: 'next', l: 'Where this goes next', i: 'trend' },
+  ] },
   { g: 'Data & admin', items: [
     { h: 'datacall', r: 'datacall', l: 'Data call', i: 'edit' }, { h: 'documents', r: 'documents', l: 'Documents', i: 'file' }, { h: 'health', r: 'health', l: 'Data health', i: 'pulse' },
     { h: 'triage', r: 'triage', l: 'Phase review', i: 'check', roles: ['ADMIN'] },
@@ -93,6 +98,8 @@ export function App() {
   const [uid, setUid] = useState<number | null>(getUserId());
   const [demo, setDemo] = useState<boolean>(() => { try { return localStorage.getItem('esh.demo') === '1'; } catch { return false; } });
   const route = useHash();
+  const [baselineAt, setBaselineAt] = useState<string | null>(null);
+  useEffect(() => { if (demo) api<any>('/demo/status').then(s => setBaselineAt(s.savedAt)).catch(() => {}); }, [demo]);
 
   useEffect(() => {
     api<Meta>('/meta').then(m => {
@@ -131,6 +138,7 @@ export function App() {
   else if (route.startsWith('decisions')) view = <Decisions />;
   else if (route.startsWith('documents')) view = <Documents />;
   else if (route.startsWith('tour')) view = <Tour />;
+  else if (route.startsWith('next')) view = <Next />;
   else if (/^map(\/[0-5])?$/.test(route)) view = <ProcessMap key={route} initial={route.length > 4 ? Number(route.slice(4)) : 0} />;
   else if (/^org\/\d+$/.test(route)) view = <Org key={route} id={Number(route.slice(4))} />;
   else if (route.startsWith('orgs')) view = <Orgs />;
@@ -204,6 +212,7 @@ export function App() {
             <div className="synbar">
               <b>Synthetic demo data.</b> Values tagged <span className="syn">SYNTHETIC</span> are generated for this demo: gaps in the project inventory (status, PoP, sponsors, alignment and more),
               the ESF lifecycle on {meta.synthetic.projects} projects (phases, gates, evidence, funding, value, pathways, audit history), workforce impact, readiness and contacts.
+              {meta.me.role === 'ADMIN' && <div style={{ marginTop: 4 }}><DemoControls savedAt={baselineAt} /></div>}
             </div>
           )}
           <div className="print-head" aria-hidden="true">
@@ -211,7 +220,7 @@ export function App() {
             <span>{/^phase\/\d$/.test(route) ? PH_SHORT[Number(route.slice(6))] : NAV.flatMap(s => s.items).find(n => n.r === key)?.l ?? (route.startsWith('p/') ? 'Project ' + route.slice(2).split('/')[0] : '')}</span>
             <span>Printed {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{meta.synthetic.projects > 0 ? ' · demo data' : ''}</span>
           </div>
-          <main>{view}</main>
+          <main><PageBoundary key={route}>{view}</PageBoundary></main>
           <footer className="foot">
             Data: FY{meta.fys.map(f => f.fy).join(' / FY')} R&D alignment workbooks · imported {meta.lastImport ? new Date(meta.lastImport.at).toLocaleString() : '—'} ·
             {' '}{meta.lastImport?.totals.projects ?? 0} projects · rules evaluated as of {meta.asOf} · local demo, not for distribution
