@@ -56,7 +56,7 @@ export function Tour() {
       open: [{ l: 'Stage 5', href: '#/phase/5', as: admin }, ...(s.fielded ? [{ l: 'A fielded project behind plan', href: `#/p/${s.fielded.esh_id}/gate`, as: admin }] : []), { l: 'Realization reviews', href: '#/realization', as: admin }] },
     { n: 'Close', title: 'Where this goes next',
       show: 'What is real, what is synthetic, what production needs, and the decisions that would move it forward.',
-      say: 'This is a working prototype on the real inventory. The ask is a pilot on the next data call.',
+      say: 'This is a working prototype on synthetic data. The ask is a pilot on the next data call, so we can measure the real portfolio.',
       open: [{ l: 'Where this goes next', href: '#/next', as: admin }] },
   ];
 

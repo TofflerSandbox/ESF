@@ -161,7 +161,7 @@ export function Overlaps() {
         {!rows.length && <div className="note" style={{ padding: 14 }}>Nothing here.</div>}
         {rows.length > 120 && <div className="note" style={{ padding: 12 }}>Showing the 120 strongest of {rows.length}.</div>}
       </Card>
-      <div className="fine dm" style={{ marginTop: 8 }}>Similarity uses the real titles and descriptions. Review decisions (links and dismissals) in this demo are synthetic.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Similarity is measured on project titles and descriptions. The portfolio and the review decisions (links and dismissals) in this demo are synthetic.</div>
     </div>
   );
 }

@@ -48,11 +48,11 @@ export function Next() {
   return (
     <div className="next">
       <h2 className="vt">Where this goes next</h2>
-      <div className="vsub">The Enterprise Scaling Hub is a working prototype built on DLA R&amp;D&apos;s real project inventory. This page sets out what it is today, what it answers, and what it would take to run it for real.</div>
+      <div className="vsub">The Enterprise Scaling Hub is a working prototype running on a synthetic, DLA-like portfolio. This page sets out what it is today, what it answers, and what it would take to run it on real data.</div>
 
       <div className="nx-status">
-        <div className="nx-s real"><span className="nx-l">Real</span><b>{real.toLocaleString()} projects</b><span>from the FY{meta.fys.map(f => String(f.fy).slice(2)).join(', FY')} alignment data calls: titles, descriptions, programs, PMs, sponsors, priorities, contracts</span></div>
-        <div className="nx-s gen"><span className="nx-l">Synthetic</span><b>{meta.synthetic.projects.toLocaleString()} project lifecycles</b><span>gates, evidence, funding, value cases, pathways, benefit reports and workforce data, generated to show how the Hub behaves. Turn on demo markers to see each value tagged.</span></div>
+        <div className="nx-s gen"><span className="nx-l">Synthetic portfolio</span><b>{real.toLocaleString()} projects</b><span>modeled on the FY{meta.fys.map(f => String(f.fy).slice(2)).join(', FY')} alignment data calls: titles, descriptions, programs, PMs, sponsors, priorities and contracts. No figure in the prototype describes DLA&apos;s actual portfolio.</span></div>
+        <div className="nx-s gen2"><span className="nx-l">Generated lifecycles</span><b>{meta.synthetic.projects.toLocaleString()} projects</b><span>gates, evidence, funding, value cases, pathways, benefit reports and workforce data, generated to show how the Hub behaves. Turn on demo markers to see each value tagged.</span></div>
         <div className="nx-s prop"><span className="nx-l">Proposed</span><b>{PROPOSALS.length} additions to the ESF</b><span>{PROPOSALS.join(' · ')}</span></div>
       </div>
 

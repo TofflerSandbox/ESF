@@ -112,7 +112,7 @@ export function Stage5() {
           {!sorted.length && <div className="note" style={{ padding: 14 }}>No capabilities match.</div>}
         </div>
       </Card>
-      <div className="fine dm" style={{ marginTop: 8 }}>Operating organizations, funding lines, benefit and adoption figures in this demo are synthetic, built on the real inventory.</div>
+      <div className="fine dm" style={{ marginTop: 8 }}>Operating organizations, funding lines, benefit and adoption figures in this demo are synthetic.</div>
     </div>
   );
 }
