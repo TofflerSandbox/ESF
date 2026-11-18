@@ -323,7 +323,7 @@ const SCENARIOS: Scenario[] = [
       return g;
     },
     story: (p, g) => `Passed Gate 2 on ${iso(g.gates.find(x => x.gate === 2)!.date)} with every criterion evidenced, a J8-certified value case and a committed transition path. Now in Phase III working Gate 3.`,
-    look: 'Gate 2 decision in ESF history · J8-certified value case · committed pathway · Gate 3 scorecard 1/5',
+    look: 'Gate 2 decision in Project history · J8-certified value case · committed pathway · Gate 3 scorecard 1/5',
   },
   {
     title: 'Stuck on the non-waivable J8 ROI criterion',
@@ -370,7 +370,7 @@ const SCENARIOS: Scenario[] = [
       return g;
     },
     story: () => 'Sunset at Gate 2 after the prototype missed its value case: J8 would not certify the ROI and the sponsor did not reaffirm. The decision records the lessons learned — a managed exit, not a quiet lapse.',
-    look: 'Managed exits column on the Pipeline · SUNSET decision and lessons learned in ESF history',
+    look: 'Managed exits column on the Pipeline · SUNSET decision and lessons learned in Project history',
   },
   {
     title: 'At-scale success with realized value',

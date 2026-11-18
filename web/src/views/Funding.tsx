@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Loading, PH_COL, PH_SHORT, Stack, d10, go, money, useAsync, ProgramLink } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, PH_COL, PH_SHORT, Stack, d10, go, money, useAsync, ProgramLink } from '../ui';
 import { TransitionReadiness } from './Ownership';
 
 const SEV: Record<string, string> = { Critical: '#9B1B2E', High: '#CE0F3E', Medium: '#D9822B' };
@@ -33,11 +33,6 @@ export function Funding() {
           <div className="vsub">The money side of the ESF: how each project will be paid for once J68 R&D steps back — Path A (a WCF stabilized rate) or Path B (a POM program line) — and the fiscal-law risks along the way.</div></div>
       </div>
 
-      <div className="takeaway">
-        The next POM window opens <b>{new Date(d.pom.open + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</b>, in {d.pom.days} days.
-        {' '}{d.pom.projects.length} Path B projects in Phase II must clear PRR (Gate 2) first; {d.pom.projects.filter((p: any) => p.risk === 'HIGH').length} have closed less than half their Gate 2 criteria.
-        {' '}Sponsors now carry {k.sponsorShare}% of FY{String(d.fy).slice(2)} funding. {k.risks} fiscal-law risk{k.risks === 1 ? '' : 's'} need attention{k.critical ? `, ${k.critical} critical` : ''}.
-      </div>
 
       <div className="hk-grid six">
         <div className="hk"><span className="hk-l">Path A — WCF</span><span className="hk-v" style={{ color: '#3F90CB' }}>{k.pathA}</span><span className="hk-s">Projects that will recover cost through a WCF rate</span></div>
@@ -48,6 +43,12 @@ export function Funding() {
         <div className="hk click" onClick={() => document.getElementById('risks')?.scrollIntoView({ behavior: 'smooth' })}><span className="hk-l">Fiscal-law risks</span><span className="hk-v" style={{ color: 'var(--red)' }}>{k.risks}</span><span className="hk-s">{k.critical} critical · see the register</span></div>
       </div>
       <div className="fine">◆ Funding lines and pathways in this demo are synthetic.</div>
+      <Insights items={[
+        { t: <>POM window opens <b>{new Date(d.pom.open + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</b>; {d.pom.projects.length} Path B projects must clear PRR (Gate 2) first</> },
+        d.pom.projects.filter((p: any) => p.risk === 'HIGH').length > 0 && { t: `${d.pom.projects.filter((p: any) => p.risk === 'HIGH').length} of them have closed less than half their Gate 2 criteria`, tone: 'warn' },
+        { t: `Sponsors carry ${k.sponsorShare}% of FY${String(d.fy).slice(2)} funding` },
+        k.risks > 0 && { t: `${k.risks} fiscal-law risk${k.risks === 1 ? '' : 's'} open${k.critical ? `, ${k.critical} critical` : ''}`, tone: 'warn' },
+      ]} />
 
       <TransitionReadiness />
 

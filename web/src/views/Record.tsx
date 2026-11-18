@@ -252,7 +252,7 @@ export function Record({ esh }: { esh: string }) {
             <div className="note">The PM or sponsor declares a path; only the sponsor commits it, naming the receiving organization, the funding line and (Path B) the POM year. Committed fields are locked.</div>
           </Card>
 
-          <Card title="ESF history">
+          <Card title="Project history">
             <ul className="tl">
               {[...r.phases.map((x: any) => ({ d: x.entered_at, s: x.synthetic, t: <>Entered {PH_SHORT[x.phase]}{x.exited_at ? ` (exited ${d10(x.exited_at)})` : ''}</> })),
                 ...r.gates.map((g: any) => ({ d: g.decided_at, s: g.synthetic, t: <><b>Gate {g.gate} — {g.outcome}</b> · {g.authority}{g.rationale ? ': ' + g.rationale : ''}</> }))]

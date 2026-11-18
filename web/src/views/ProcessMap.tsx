@@ -71,7 +71,7 @@ export function ProcessMap({ initial }: { initial?: number }) {
         </div>
         {gateCrit.length > 0 && (
           <div className="pm-hub">
-            <div className="lbl">How ESH enforces Gate {sel}</div>
+            <div className="lbl">How the Hub enforces Gate {sel}</div>
             <div className="sub">A project in {s.label} can pass Gate {sel} only when each of these is closed with evidence on its record{gateCrit.some(c => c.non_waivable) ? '; ◆ items can never be waived' : ''}.</div>
             <ol>{gateCrit.map(c => <li key={c.id}>{c.text}{c.non_waivable && <b title="Non-waivable"> ◆</b>}</li>)}</ol>
           </div>

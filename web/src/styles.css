@@ -965,3 +965,28 @@ a.proglink .proglink-n{font-family:var(--sans);font-weight:400;color:var(--slate
 .ov-mid{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px}
 .ov-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:5px}
 .err.sm{color:var(--red);font-size:11.5px}
+/* ── Stage 5: the enterprise view ── */
+.s5-ops{display:flex;flex-direction:column;gap:4px;max-height:360px;overflow-y:auto}
+.s5-op{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 28px 42px;gap:8px;align-items:center;font:inherit;font-size:12.5px;text-align:left;border:1px solid transparent;background:none;border-radius:7px;padding:5px 8px;cursor:pointer;color:var(--ink)}
+.s5-op:hover{background:#F7F5EF;border-color:var(--line)}
+.s5-op.on{background:#EEF2F8;border-color:#C9D5E6}
+.s5-op.rd{background:#FDF5F7}
+.s5-on{display:flex;flex-direction:column;line-height:1.25}
+.s5-warn{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em}
+.s5-track{height:12px;background:#EDEBE4;border-radius:4px;overflow:hidden}
+.s5-track span{display:block;height:100%;background:#F9B018;border-radius:4px}
+.s5-op b{text-align:right;color:var(--navy)}
+.s5-pc{text-align:right;font-family:var(--mono);font-size:11.5px;font-weight:700}
+/* ── Insights panel (replaces the intro paragraphs) ── */
+.insights{background:var(--card);border:1px solid var(--line);border-radius:9px;margin:0 0 14px;padding:0 14px 8px}
+.insights.shut{padding-bottom:0}
+.ins-h{display:flex;align-items:center;gap:7px;width:100%;font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--slate);background:none;border:none;padding:9px 0 7px;cursor:pointer;text-align:left}
+.ins-ic{color:var(--gold,#B8913A);font-size:12px}
+.ins-n{font-family:var(--mono);font-size:10px;background:#EDEBE4;border-radius:8px;padding:0 6px;color:var(--slate)}
+.ins-t{margin-left:auto;font-weight:600;letter-spacing:0;text-transform:none;color:var(--navy);font-size:11.5px}
+.insights ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px 18px}
+.insights li{position:relative;padding:3px 0 3px 14px;font-size:12.8px;line-height:1.45;color:var(--ink)}
+.insights li::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:#7FA7D6}
+.insights li.warn::before{background:var(--red)}
+.insights li.good::before{background:#2F7D5C}
+.insights li b{color:var(--navy)}

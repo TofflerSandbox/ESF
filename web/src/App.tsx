@@ -93,7 +93,7 @@ export function App() {
     }).catch(e => setErr(String(e.message)));
   }, [uid]);
 
-  if (err) return <main><ErrorBox msg={`Cannot reach the ESH API: ${err}. Is the server running (npm run dev)? Has the import been run (npm run import)?`} /></main>;
+  if (err) return <main><ErrorBox msg={`Cannot reach the Hub API: ${err}. Is the server running (npm run dev)? Has the import been run (npm run import)?`} /></main>;
   if (!meta) return <main><Loading /></main>;
 
   const key = meta.me.org_id && route === `org/${meta.me.org_id}` ? 'myorg' : route === '' ? 'dash' :route.split('/')[0] === 'p' || route.split('/')[0] === 'brief' ? '' : route.startsWith('phase/') ? 'board' : route.startsWith('org/') ? 'orgs' : route.startsWith('program') ? 'programs' :route.startsWith('map') ? 'map' : route.startsWith('gates') ? 'gates' : route.startsWith('boards') ? 'boards' : route.split('?')[0];

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useSort } from '../sort';
-import { Card, Donut, ErrorBox, GroupBars, Help, Loading, PH_COL, PH_SHORT, VALUE_PATH, go, money, useAsync, ProgramLink } from '../ui';
+import { Card, Donut, ErrorBox, GroupBars, Help, Insights, Loading, PH_COL, PH_SHORT, VALUE_PATH, go, money, useAsync, ProgramLink } from '../ui';
 import { PromiseVsDelivery } from './Realization';
 
 const $ = (v: number) => (Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : money(v).replace('.00M', 'M'));
@@ -211,12 +211,6 @@ function Realized({ d }: { d: any }) {
 
   return (
     <>
-      <div className="takeaway">
-        The {s.n} projects in the enterprise have delivered <b>{$(s.realized)}</b> since transition against <b>{$(s.planned)}</b> planned ({pc(s.realization)} of plan),
-        on {$(s.cost)} invested: <b>{back(s.roi)} back per dollar so far</b>. At today's run rate of {$(s.runRate)} a year (the full baseline is {$(s.baselineAnnual)}),
-        {s.roi != null && s.roi < 1 && s.runRate ? <> they pay back in about <b>{((s.cost - s.realized) / s.runRate).toFixed(1)} more years</b>.</> : ' they have paid back.'}
-        {' '}{s.status.SILENT + s.status.AT_RISK > 0 && <><b style={{ color: 'var(--red)' }}>{s.status.AT_RISK} at risk</b> and <b>{s.status.SILENT} not reporting</b> need a sponsor conversation.</>}
-      </div>
 
       <div className="hk-grid three">
         <div className="hk"><span className="hk-l">Delivered to date</span><span className="hk-v">{$(s.realized)}</span><span className="hk-s">against {$(s.planned)} planned</span></div>
@@ -226,6 +220,13 @@ function Realized({ d }: { d: any }) {
         <div className="hk"><span className="hk-l">Paid back</span><span className="hk-v">{s.paidBack}</span><span className="hk-s">of {s.n} have returned more than they cost</span></div>
         <div className="hk"><span className="hk-l">Validated by J8</span><span className="hk-v">{pc(s.validatedShare)}</span><span className="hk-s">of benefit reported; the rest is sponsor or system data</span></div>
       </div>
+      <Insights items={[
+        s.roi != null && s.roi < 1 && s.runRate
+          ? { t: <>At today's run rate, fielded projects pay back their cost in about <b>{((s.cost - s.realized) / s.runRate).toFixed(1)} more years</b></> }
+          : { t: 'Fielded projects have paid back their cost', tone: 'good' },
+        { t: `Run rate ${$(s.runRate)} a year against a full baseline of ${$(s.baselineAnnual)}` },
+        s.status.AT_RISK + s.status.SILENT > 0 && { t: `${s.status.AT_RISK} at risk and ${s.status.SILENT} not reporting: owner conversations needed`, tone: 'warn' },
+      ]} />
 
       <PathCard title="Value delivered, by type of return" hint="benefit delivered since transition · click a type to filter the list"
         center={$(s.realized)} sub="delivered" sel={path} onSel={setPath}
@@ -335,10 +336,7 @@ function Prospective({ d, horizon }: { d: any; horizon: number }) {
 
   return (
     <>
-      <div className="takeaway">
-        Every $1 invested in the {s.liveCount} active projects is projected to return <b>${s.multiple?.toFixed(2)}</b> over {horizon} years, <b>${s.riskMultiple?.toFixed(2)}</b> after allowing for the projects that won't reach scale.
-        This is a forecast from the PMs' value cases, {s.annual ? Math.round(100 * s.certifiedAnnual / s.annual) : 0}% of it checked by J8. It becomes an obligation at Gate 4, when it is frozen as the baseline the Realized view tracks.
-      </div>
+
       <div className="hk-grid three">
         <div className="hk"><span className="hk-l">Invested so far</span><span className="hk-v">{$(s.totalCost)}</span><span className="hk-s">{$(s.j68)} J68 R&D · {$(s.sponsor)} sponsors</span></div>
         <div className="hk"><span className="hk-l">Expected value, {horizon} years</span><span className="hk-v">{$(s.value)}</span><span className="hk-s">{$(s.annual)} a year from {s.withValue} projects with a value case</span></div>
@@ -351,6 +349,12 @@ function Prospective({ d, horizon }: { d: any; horizon: number }) {
         <div className="hk click" onClick={() => go('#/exits')}><span className="hk-l">Cost of managed exits</span><span className="hk-v">{$(s.exitCost)}</span><span className="hk-s">{s.exits} projects stopped; the price of learning, carried in the whole-program view →</span></div>
       </div>
       <div className="fine">◆ Value cases, funding and gate decisions in this demo are synthetic; in use they come from PMs, J8 and the gate record.</div>
+      <Insights items={[
+        { t: <>Every $1 invested is projected to return <b>${s.riskMultiple?.toFixed(2)}</b> over {horizon} years after risk (${s.multiple?.toFixed(2)} before)</> },
+        s.fullMultiple != null && { t: `On full cost, including ${$(s.costToComplete)} still to spend: ${x(s.fullMultiple)}`, tone: (s.fullMultiple ?? 0) < 1 ? 'warn' : undefined },
+        { t: `${s.annual ? Math.round(100 * s.certifiedAnnual / s.annual) : 0}% of projected value is J8-certified; the rest is PM estimate` },
+        { t: 'Each projection becomes the tracked baseline at Gate 4' },
+      ]} />
 
       <PathCard title="Projected value, by type of return" hint="expected value a year from active projects · click a type to filter the list"
         center={$(s.annual)} sub="a year, projected" sel={path} onSel={setPath}

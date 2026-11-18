@@ -72,6 +72,22 @@ export function Help({ title, children }: { title: string; children: ReactNode }
 export const OrgLink = ({ id, name, chip = false }: { id: number; name: string; chip?: boolean }) => (
   <a className={chip ? 'org' : 'orglink'} href={'#/org/' + id} onClick={e => e.stopPropagation()} title={`Open ${name}`}>{name}</a>
 );
+/** A short, one-line finding for the Insights panel. `tone` colours its marker: warn (needs attention), good, or neutral. */
+export type Insight = { t: ReactNode; tone?: 'warn' | 'good' } | string | false | null | undefined;
+/** The Insights panel: a few one-line findings under a page's headline numbers. Collapsible; the choice is remembered. */
+export function Insights({ items }: { items: Insight[] }) {
+  const [open, setOpen] = useState<boolean>(() => { try { return localStorage.getItem('esh.insights') !== '0'; } catch { return true; } });
+  const list = items.filter(Boolean).map(i => (typeof i === 'string' ? { t: i } : i)) as { t: ReactNode; tone?: 'warn' | 'good' }[];
+  if (!list.length) return null;
+  const toggle = () => { setOpen(!open); try { localStorage.setItem('esh.insights', open ? '0' : '1'); } catch { /* storage unavailable */ } };
+  return (
+    <div className={'insights' + (open ? '' : ' shut')}>
+      <button className="ins-h" onClick={toggle} aria-expanded={open}><span className="ins-ic" aria-hidden="true">✦</span>Insights<span className="ins-n">{list.length}</span><span className="ins-t">{open ? 'Hide' : 'Show'}</span></button>
+      {open && <ul>{list.map((x, i) => <li key={i} className={x.tone ?? ''}>{x.t}</li>)}</ul>}
+    </div>
+  );
+}
+
 /** A program code that opens the program's page (stops the click reaching a clickable row). */
 export const ProgramLink = ({ code, name, el, full = false }: { code: string | null | undefined; name?: string; el?: string | null; full?: boolean }) =>
   code ? <a className="proglink" href={'#/program/' + code} onClick={e => e.stopPropagation()} title={name ? `${name}: open the program page` : 'Open the program page'}

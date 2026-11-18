@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Card, ErrorBox, Loading, d10, useAsync } from '../ui';
+import { Card, ErrorBox, Insights, Loading, d10, useAsync } from '../ui';
 
 const ST: Record<string, { l: string; c: string }> = { OPEN: { l: 'Open', c: '#CE0F3E' }, IN_REVIEW: { l: 'In review', c: '#C9A961' }, DECIDED: { l: 'Decided', c: '#2F7D5C' }, DEFERRED: { l: 'Deferred', c: '#8A8378' } };
 const SEV: Record<string, string> = { Critical: '#9B1B2E', High: '#D9822B', Medium: '#8A8378' };
@@ -26,16 +26,16 @@ export function Decisions() {
       </div>
       {msg && <div className={'banner ' + (msg.ok ? 'ok' : 'err')} onClick={() => setMsg(null)}>{msg.t}</div>}
 
-      <div className="takeaway">
-        {n('DECIDED')} of 11 decided, {n('IN_REVIEW')} in review, {n('OPEN')} still open{n('DEFERRED') ? `, ${n('DEFERRED')} deferred` : ''}.
-        {critOpen.length > 0 && <> {critOpen.length} critical decision{critOpen.length === 1 ? ' is' : 's are'} unresolved: {critOpen.map((r: any) => `#${r.ord}`).join(', ')}.</>}
-      </div>
       <div className="hk-grid">
         {Object.entries(ST).map(([k, v]) => (
           <div key={k} className={'hk click' + (filter === k ? ' sel' : '')} onClick={() => setFilter(filter === k ? null : k)}><span className="hk-l">{v.l}</span><span className="hk-v" style={{ color: v.c }}>{n(k)}</span><span className="hk-s">click to filter</span></div>
         ))}
       </div>
       <div className="fine">◆ Statuses, owners and dates in this demo are synthetic.</div>
+      <Insights items={[
+        { t: <><b>{n('DECIDED')} of 11</b> decided; {n('IN_REVIEW')} in review, {n('OPEN')} open{n('DEFERRED') ? `, ${n('DEFERRED')} deferred` : ''}</> },
+        critOpen.length > 0 && { t: <>{critOpen.length} critical decision{critOpen.length === 1 ? '' : 's'} unresolved: {critOpen.map((r: any) => `#${r.ord}`).join(', ')}</>, tone: 'warn' },
+      ]} />
 
       {cats.map(cat => {
         const rows = d.rows.filter((r: any) => r.category === cat && (!filter || r.state.status === filter));

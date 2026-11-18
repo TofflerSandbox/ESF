@@ -216,6 +216,66 @@ export function registerRealization(app: FastifyInstance, db: PGlite, h: Deps) {
     };
   }));
 
+  /* ── Stage 5, the enterprise view: who runs each fielded capability now, how it is paid for, whether it delivers, whether people use it ── */
+  app.get('/api/enterprise', h.wrap(async () => {
+    const roi = await roiData(db, 5);
+    const [ps, paths, adoption, reviews, actions, workforce] = await Promise.all([
+      q(`SELECT p.id, p.esh_id, p.title, p.program_code, p.element_code, p.esf_phase, p.esf_status, p.esf_source,
+           (SELECT json_agg(json_build_object('id', o.id, 'name', o.name) ORDER BY o.name) FROM project_org po JOIN org o ON o.id = po.org_id WHERE po.project_id = p.id AND po.role = 'SPONSOR') sponsor_list,
+           b.transitioned_on, b.owner_org_id, bo.name baseline_owner
+         FROM project p LEFT JOIN benefit_baseline b ON b.project_id = p.id LEFT JOIN org bo ON bo.id = b.owner_org_id
+         WHERE p.esf_status = 'AT_SCALE'`),
+      q(`SELECT DISTINCT ON (t.project_id) t.project_id, t.path, t.status, t.funding_line, t.pom_fy, t.receiver_org_id, o.name receiver
+         FROM transition_pathway t LEFT JOIN org o ON o.id = t.receiver_org_id ORDER BY t.project_id, CASE t.status WHEN 'ACTIVE' THEN 0 WHEN 'COMMITTED' THEN 1 ELSE 2 END`),
+      q(`SELECT DISTINCT ON (project_id) project_id, day, adoption_pct FROM adoption_measure ORDER BY project_id, day DESC`),
+      q(`SELECT project_id, months, due_on FROM realization_review WHERE status = 'SCHEDULED' ORDER BY due_on`),
+      q(`SELECT r.project_id, count(*)::int n, count(*) FILTER (WHERE a.due_on < $1)::int overdue FROM realization_action a JOIN realization_review r ON r.id = a.review_id WHERE a.status = 'OPEN' GROUP BY 1`, [iso(AS_OF)]),
+      q(`SELECT project_id, sum(headcount)::int people FROM workforce_impact GROUP BY 1`),
+    ]);
+    const by = <T,>(rows: any[], k = 'project_id') => new Map<number, T>(rows.map((r: any) => [r[k], r]));
+    const pathOf = by<any>(paths), adoptOf = by<any>(adoption), actOf = by<any>(actions), peopleOf = by<any>(workforce);
+    const nextOf = new Map<number, any>(); for (const r of reviews) if (!nextOf.has(r.project_id)) nextOf.set(r.project_id, r);
+    const realOf = new Map(roi.realized.projects.map((r: any) => [r.esh_id, r]));
+    const today = iso(AS_OF);
+    const rows = ps.map((p: any) => {
+      const t = pathOf.get(p.id), r: any = realOf.get(p.esh_id), a = adoptOf.get(p.id), nx = nextOf.get(p.id), ac = actOf.get(p.id);
+      // who runs it now: the first organization outside R&D named as the pathway's receiver, the baseline's owner, or a sponsor; J68 only if nobody else is
+      const rd = (n: string | null | undefined) => !!n && /J68/.test(n);
+      const cands = [t?.receiver_org_id ? { id: t.receiver_org_id, name: t.receiver } : null, p.owner_org_id ? { id: p.owner_org_id, name: p.baseline_owner } : null, ...(p.sponsor_list ?? [])].filter(Boolean) as { id: number; name: string }[];
+      const op = cands.find(c => !rd(c.name)) ?? cands[0] ?? null;
+      const since = p.transitioned_on ? iso(p.transitioned_on) : null;
+      return {
+        esh_id: p.esh_id, title: p.title, program_code: p.program_code, element_code: p.element_code, esf_phase: p.esf_phase, esf_status: p.esf_status, esf_source: p.esf_source,
+        operator: op, since, months: since ? Math.max(0, Math.round((AS_OF.getTime() - new Date(since).getTime()) / (30.44 * 864e5))) : null,
+        path: t?.path ?? null, funding_line: t?.funding_line ?? null, pom_fy: t?.pom_fy ?? null,
+        valuePath: r?.path ?? null, baselineAnnual: r?.baselineAnnual ?? null, realized: r?.realized ?? null, planned: r?.planned ?? null, realization: r?.realization ?? null,
+        runRate: r?.runRate ?? null, status: r?.status ?? null, lastReport: r?.lastReport ?? null, note: r?.note ?? null,
+        adoption: a ? { day: a.day, pct: a.adoption_pct } : null, people: peopleOf.get(p.id)?.people ?? null,
+        nextReview: nx ? { months: nx.months, due: iso(nx.due_on), overdue: iso(nx.due_on) < today } : null,
+        openActions: ac?.n ?? 0, overdueActions: ac?.overdue ?? 0,
+      };
+    });
+    const sum = (xs: any[], k: string) => xs.reduce((s, x) => s + (x[k] ?? 0), 0);
+    const opMap = new Map<number, any>();
+    for (const r of rows) if (r.operator) {
+      const o = opMap.get(r.operator.id) ?? opMap.set(r.operator.id, { id: r.operator.id, name: r.operator.name, n: 0, realized: 0, planned: 0, runRate: 0, atRisk: 0 }).get(r.operator.id)!;
+      o.n++; o.realized += r.realized ?? 0; o.planned += r.planned ?? 0; o.runRate += r.runRate ?? 0; if (['AT_RISK', 'SILENT'].includes(r.status)) o.atRisk++;
+    }
+    const adopt = rows.filter(r => r.adoption).map(r => r.adoption!.pct).sort((a, b) => a - b);
+    const soon = iso(new Date(AS_OF.getTime() + 90 * 864e5));
+    return {
+      asOf: today, rows, status: REAL_STATUS,
+      operators: [...opMap.values()].map(o => ({ ...o, realization: o.planned ? o.realized / o.planned : null })).sort((a, b) => b.n - a.n),
+      funding: { WCF: rows.filter(r => r.path === 'A_WCF').length, POM: rows.filter(r => r.path === 'B_POM').length, NONE: rows.filter(r => !r.path).length },
+      totals: {
+        n: rows.length, operators: opMap.size, realized: sum(rows, 'realized'), planned: sum(rows, 'planned'), runRate: sum(rows, 'runRate'), baseline: sum(rows, 'baselineAnnual'),
+        medianAdoption: adopt.length ? adopt[adopt.length >> 1] : null, measured: adopt.length, people: sum(rows, 'people'),
+        attention: rows.filter(r => ['AT_RISK', 'SILENT'].includes(r.status ?? '') || r.nextReview?.overdue || r.overdueActions).length,
+        reviewsDue: rows.filter(r => r.nextReview && r.nextReview.due <= soon).length,
+      },
+    };
+  }));
+
   /* ── promise drift: how each project's value claim moved from gate to gate, and against delivery ── */
   app.get('/api/value-drift', h.wrap(async () => {
     const roi = await roiData(db, 5);

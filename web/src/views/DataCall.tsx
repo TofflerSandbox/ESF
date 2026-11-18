@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Loading, STATUS, d10, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, STATUS, d10, useAsync } from '../ui';
 
 const ST: Record<string, { l: string; c: string }> = {
   NOT_STARTED: { l: 'Not started', c: '#B9B4A8' }, IN_PROGRESS: { l: 'In progress', c: '#C9A961' }, SUBMITTED: { l: 'Awaiting review', c: '#3F90CB' },
@@ -49,10 +49,6 @@ export function DataCall() {
           {admin && !hasOpen && <OpenCall nextFy={nextFy} due={due} setDue={setDue} onOpen={() => act(() => api('/datacalls', { method: 'POST', body: { fy: nextFy, due_at: due } }), `FY${nextFy} data call opened`)} />}
         </Card>
       ) : (<>
-        <div className="takeaway">
-          FY{c.fy} data call — {c.status === 'OPEN' ? <>open, due <b>{d10(c.due_at)}</b>{d.daysLeft != null ? ` (${d.daysLeft} days left)` : ''}</> : <>closed {d10(c.closed_at)}</>}.
-          {' '}{k.SUBMITTED + k.APPROVED} of {k.total} projects submitted ({Math.round(100 * (k.SUBMITTED + k.APPROVED) / Math.max(k.total, 1))}%); {k.SUBMITTED} await review and {k.NOT_STARTED} haven't started.
-        </div>
         <div className="hk-grid six">
           {(['NOT_STARTED', 'IN_PROGRESS', 'SUBMITTED', 'RETURNED', 'APPROVED'] as const).map(s => (
             <div key={s} className={'hk click' + (status === s ? ' sel' : '')} onClick={() => setStatus(status === s ? null : s)}>
@@ -62,6 +58,12 @@ export function DataCall() {
         </div>
         <div className="dc-bar">{(['APPROVED', 'SUBMITTED', 'RETURNED', 'IN_PROGRESS', 'NOT_STARTED'] as const).map(s => k[s] ? <span key={s} style={{ width: `${100 * k[s] / k.total}%`, background: ST[s].c }} title={`${ST[s].l}: ${k[s]}`} /> : null)}</div>
         {c.synthetic && <div className="fine">◆ The FY{c.fy} responses are synthetic demo data.</div>}
+        <Insights items={[
+          { t: <><b>{Math.round(100 * (k.SUBMITTED + k.APPROVED) / Math.max(k.total, 1))}%</b> of {k.total} projects submitted{c.status === 'OPEN' && d.daysLeft != null ? `, ${d.daysLeft} days before the ${d10(c.due_at)} deadline` : ''}</> },
+          k.SUBMITTED > 0 && { t: `${k.SUBMITTED} responses waiting on J68 review` },
+          k.NOT_STARTED > 0 && { t: `${k.NOT_STARTED} projects not started`, tone: 'warn' },
+          k.RETURNED > 0 && { t: `${k.RETURNED} returned to PMs for changes`, tone: 'warn' },
+        ]} />
 
         {admin && c.status === 'OPEN' && (
           <div className="banner info" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>

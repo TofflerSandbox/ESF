@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
-import { Card, ErrorBox, Help, Loading, Syn, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, Syn, VALUE_PATH, go, money, useAsync } from '../ui';
 import { HubProposal } from './Ownership';
 
 const $ = (v: number | null | undefined) => (v == null ? '—' : money(v).replace('.00M', 'M'));
@@ -175,10 +175,7 @@ export function Realization() {
         <div><h2 className="vt">Realization reviews <HubProposal /></h2>
           <div className="vsub">R&D's work doesn't end at Gate 4. The operational owner reports benefit monthly, and at 6, 12 and 24 months after transition R&D and the owner review delivery against the baseline, agree an outcome, and own the actions that close the gap.</div></div>
       </div>
-      <div className="takeaway">
-        {T.fielded} fielded projects are being tracked; {T.reportedLastMonth} filed last month's benefit report. {d.overdue.length} review{d.overdue.length === 1 ? ' is' : 's are'} overdue and {d.upcoming.length} fall due in the next 90 days.
-        {' '}{d.actions.length} actions are open, {T.overdueActions} past due: <b>{T.openByOwner['R&D']} with R&D</b>, {T.openByOwner.SPONSOR} with sponsors, {T.openByOwner.J8} with J8, {T.openByOwner.J1} with J1.
-      </div>
+
       <div className="hk-grid fit">
         <div className="hk"><span className="hk-l">Fielded, tracked</span><span className="hk-v">{T.fielded}</span><span className="hk-s">projects with a Gate 4 baseline</span></div>
         <div className="hk"><span className="hk-l">Reported last month</span><span className="hk-v">{T.reportedLastMonth}/{T.fielded}</span><span className="hk-s">monthly benefit reports filed by owners</span></div>
@@ -186,6 +183,12 @@ export function Realization() {
         <div className="hk"><span className="hk-l">Due in 90 days</span><span className="hk-v">{d.upcoming.length}</span><span className="hk-s">to schedule with owners</span></div>
         <div className="hk"><span className="hk-l">Open actions</span><span className="hk-v">{d.actions.length}</span><span className="hk-s">{T.overdueActions} past due · {d.actionsDone} closed so far</span></div>
       </div>
+      <Insights items={[
+        { t: <>Open actions: <b>{T.openByOwner['R&D']} with R&D</b>, {T.openByOwner.SPONSOR} with sponsors, {T.openByOwner.J8} with J8, {T.openByOwner.J1} with J1</> },
+        T.overdueActions > 0 && { t: `${T.overdueActions} action${T.overdueActions === 1 ? '' : 's'} past due`, tone: 'warn' },
+        d.overdue.length > 0 && { t: `${d.overdue.length} review${d.overdue.length === 1 ? '' : 's'} overdue; ${d.upcoming.length} more due in 90 days`, tone: 'warn' },
+        T.fielded - T.reportedLastMonth > 0 && { t: `${T.fielded - T.reportedLastMonth} owner${T.fielded - T.reportedLastMonth === 1 ? '' : 's'} missed last month's benefit report` },
+      ]} />
 
       <div className="grid2">
         <Card title="Overdue and upcoming reviews" right={<span className="hint">next 90 days</span>}>

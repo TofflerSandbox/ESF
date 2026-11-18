@@ -1,4 +1,4 @@
-# ESH — Enterprise Scaling Hub
+# Enterprise Scaling Hub
 
 Portfolio software for running R&D projects through a stage-gate scaling framework (ESF), from intake to a capability fielded at scale.
 ESH imports an organization's existing project list, suggests where each project sits in the lifecycle, and then becomes the system of record for:

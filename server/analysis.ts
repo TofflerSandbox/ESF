@@ -68,13 +68,12 @@ export async function exitsData(db: PGlite) {
     useful: count(r => r.next.length > 0 || r.reason === 'KNOWLEDGE' || r.technical === 'MET'),
   };
   const top = byReason[0];
-  const takeaway = [
-    `${rows.length} projects left the pipeline before scale, after ${'$' + Math.round(totalCost / 1e6)}M of spending.`,
-    `${pct(kpis.useful, rows.length)}% left something behind: ${continued} continue as a follow-on project, ${knowledge} delivered a report, and ${worked} worked technically.`,
-    orphaned ? `${orphaned} worked but found no owner to take them on — the gap the ESF funding handoff is meant to close.` : '',
-    top ? `The most common reason: ${top.label.toLowerCase()} (${top.n}).` : '',
-  ].filter(Boolean).join(' ');
-  return { asOf: AS_OF.toISOString().slice(0, 10), takeaway, kpis, byReason, byTech, byGate, byProgram, rows, reasons: EXIT_REASONS, tech: TECH_RESULTS };
+  const insights: { t: string; tone?: 'warn' | 'good' }[] = [
+    { t: `${pct(kpis.useful, rows.length)}% left something behind: ${continued} follow-ons, ${knowledge} reports, ${worked} worked technically`, tone: 'good' },
+    ...(orphaned ? [{ t: `${orphaned} worked but found no owner to take them on`, tone: 'warn' as const }] : []),
+    ...(top ? [{ t: `Most common reason: ${top.label.toLowerCase()} (${top.n})` }] : []),
+  ];
+  return { asOf: AS_OF.toISOString().slice(0, 10), insights, kpis, byReason, byTech, byGate, byProgram, rows, reasons: EXIT_REASONS, tech: TECH_RESULTS };
 }
 
 /* ── gates: who decides what, how often projects pass, and what holds them up ── */

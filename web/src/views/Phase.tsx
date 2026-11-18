@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { Bars, Card, EL_COL, ErrorBox, Loading, OrgList, PH_COL, PH_NAME, PH_SHORT, PH_TXT, PhaseChip, STATUS, STATUS_COL, StatusChip, d10, go, money, useAsync, ProgramLink } from '../ui';
+import { Stage5 } from './Stage5';
 
 const months = (from: string | null, to: string) => (from ? (new Date(to).getTime() - new Date(from).getTime()) / (30.44 * 864e5) : null);
 const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -21,7 +22,30 @@ function HBars({ items, color, onPick }: { items: { k: string; n: number; c?: st
   );
 }
 
+/** Stage 5 is the enterprise's view (who runs it, how it is paid for, whether it delivers); Stage 0 to Phase IV are R&D's. */
 export function Phase({ ph }: { ph: number }) {
+  return ph === 5 ? <Stage5Page /> : <PhaseRD ph={ph} />;
+}
+
+function Stage5Page() {
+  return (
+    <>
+      <div className="vhead">
+        <div>
+          <div className="crumb"><a href="#/board">Pipeline</a> / {PH_SHORT[5]} · <a href="#/map/5">What happens at scale? →</a></div>
+          <h2 className="vt" style={{ color: PH_TXT[5] }}>{PH_SHORT[5]} — In the enterprise</h2>
+          <div className="vsub">The enterprise view of fielded R&D: which organization runs each capability now, how it is paid for, whether it is delivering against the value promised at Gate 4, and whether people are using it.</div>
+        </div>
+      </div>
+      <div className="phtabs">
+        {PH_SHORT.map((l, i) => <a key={i} href={'#/phase/' + i} className={i === 5 ? 'on' : ''} style={i === 5 ? { background: PH_COL[i], borderColor: PH_COL[i] } : { color: PH_TXT[i] }}>{l}</a>)}
+      </div>
+      <Stage5 />
+    </>
+  );
+}
+
+function PhaseRD({ ph }: { ph: number }) {
   const meta = useMeta();
   const [fy, setFy] = useState(meta.latestFy);
   const [search, setSearch] = useState('');

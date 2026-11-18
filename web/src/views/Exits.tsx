@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
-import { Bars, Card, Donut, ErrorBox, Loading, PH_COL, d10, go, money, useAsync, ProgramLink } from '../ui';
+import { Bars, Card, Donut, ErrorBox, Insights, Loading, PH_COL, d10, go, money, useAsync, ProgramLink } from '../ui';
 
 const REASON_COL: Record<string, string> = {
   FOLLOW_ON: '#2F7D5C', KNOWLEDGE: '#3F90CB', NO_OWNER: '#F9B018', VALUE: '#D9822B', TECHNICAL: '#CE0F3E', SPONSOR: '#6B3FA0', SUPERSEDED: '#8A6B25', null: '#B9B4A8',
@@ -38,8 +38,6 @@ export function Exits() {
           <div className="vsub">Projects stopped at a gate before reaching scale (sunset or descoped). Why did they stop, did they work, and what came after? A documented exit is the framework working, not a failure.</div></div>
       </div>
 
-      <div className="takeaway">{d.takeaway}</div>
-
       <div className="hk-grid six">
         <div className="hk"><span className="hk-l">Projects stopped</span><span className="hk-v">{k.exits}</span><span className="hk-s">{$(k.cost)} spent before stopping</span></div>
         <div className="hk"><span className="hk-l">Worked technically</span><span className="hk-v">{k.workedPct}%</span><span className="hk-s">{k.worked} worked, {k.partly} partly worked</span></div>
@@ -51,6 +49,7 @@ export function Exits() {
         <div className="hk"><span className="hk-l">Time before stopping</span><span className="hk-v">{k.medianMonths != null ? Math.round(k.medianMonths) : '—'}<small style={{ fontSize: 16 }}> mo</small></span><span className="hk-s">Median from Phase I start to the stop decision</span></div>
       </div>
       <div className="fine">◆ Exit reasons and technical results in this demo are synthetic, apart from follow-on projects (matched from real titles) and DTIC reports (from the data call).</div>
+      <Insights items={d.insights} />
 
       <div className="grid2">
         <Card title="Why projects stopped" right={<span className="hint">click a reason to filter the list</span>}>

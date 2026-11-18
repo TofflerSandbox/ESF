@@ -146,22 +146,22 @@ export async function homeData(db: PGlite, fy: number, ready: Ready) {
     const k = r.program_code ?? '?'; a[k] = a[k] ?? { n: 0, el: r.element_code }; a[k].n++; return a; }, {}))
     .map(([k, v]) => ({ k, ...v })).sort((a, b) => b.n - a.n);
 
-  /* ── the takeaway sentence ── */
+  /* ── insights: one-line findings for the Insights panel ── */
   // two different facts: where the work piles up (largest stock) and where it runs slowest (largest share past design)
   const stages = funnel.filter(f => f.phase >= 1 && f.phase <= 4);
   const biggest = [...stages].sort((a, b) => b.n - a.n)[0];
   const slowest = [...stages].filter(f => f.n >= 5).sort((a, b) => (b.overPct ?? 0) - (a.overPct ?? 0))[0];
   const uncovered = coverage.filter(c => c.live === 0);
-  const takeaway = [
-    biggest ? `Most projects are in ${PHASES[biggest.phase].short} (${biggest.n}${biggest.yearAgo ? `, ${biggest.n >= biggest.yearAgo ? 'up' : 'down'} from ${biggest.yearAgo} last year` : ''}).` : '',
+  const insights: { t: string; tone?: 'warn' | 'good' }[] = [
+    ...(biggest ? [{ t: `Most projects are in ${PHASES[biggest.phase].short}: ${biggest.n}${biggest.yearAgo ? `, ${biggest.n >= biggest.yearAgo ? 'up' : 'down'} from ${biggest.yearAgo} a year ago` : ''}` }] : []),
     slowest && (slowest.overPct ?? 0) > 0
-      ? `${PHASES[slowest.phase].short} is the slowest: ${slowest.over} of its ${slowest.n} projects are taking longer than the ${slowest.design![0]}–${slowest.design![1]} months planned.`
-      : 'Every phase is moving on schedule.',
-    readyHere.length ? `${readyHere.length} project${readyHere.length === 1 ? ' is' : 's are'} ready for a decision.` : 'No project is waiting on a decision.',
-    uncovered.length ? `${uncovered.length} of this year's ${coverage.length} priorities have no project working on them.` : 'Every priority has at least one project working on it.',
-  ].join(' ');
+      ? { t: `${PHASES[slowest.phase].short} runs slowest: ${slowest.over} of ${slowest.n} past the ${slowest.design![0]}–${slowest.design![1]} months planned`, tone: 'warn' }
+      : { t: 'Every phase is moving on schedule', tone: 'good' },
+    readyHere.length ? { t: `${readyHere.length} project${readyHere.length === 1 ? '' : 's'} ready for a gate decision` } : { t: 'No project waiting on a decision' },
+    uncovered.length ? { t: `${uncovered.length} of ${coverage.length} priorities have no project working on them`, tone: 'warn' } : { t: 'Every priority has a project working on it', tone: 'good' },
+  ];
 
-  return { fy, asOf, takeaway, kpis, funnel, coverage, fundingByPhase, decisions, health, programs, yieldTrend: yieldRows.map((y: any) => ({ fy: y.fy, pct: yieldPct(y) })) };
+  return { fy, asOf, insights, kpis, funnel, coverage, fundingByPhase, decisions, health, programs, yieldTrend: yieldRows.map((y: any) => ({ fy: y.fy, pct: yieldPct(y) })) };
 }
 
 /** Data hygiene grouped by program manager: the flags that used to fill the dashboard's attention queue. */

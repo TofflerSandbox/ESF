@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
-import { Bars, Card, Donut, EL_COL, ErrorBox, Loading, PH_COL, PH_SHORT, Stack, VALUE_PATH, go, money, useAsync } from '../ui';
+import { Bars, Card, Donut, EL_COL, ErrorBox, Insights, Loading, PH_COL, PH_SHORT, Stack, VALUE_PATH, go, money, useAsync } from '../ui';
 
 /** A colour per priority owner (MSCs and J-codes), so the priority chart reads at a glance. */
 const OWNER_COL = ['#27568F', '#2F7D5C', '#C9A961', '#CE0F3E', '#3F90CB', '#8A6B25', '#6B3FA0', '#D9822B', '#16233C', '#6BA37E', '#9B1B2E', '#8A9099'];
@@ -48,8 +48,6 @@ export function Dashboard() {
         <label className="fy">Data call <select value={fy} onChange={e => setFy(Number(e.target.value))}>{meta.fys.map(f => <option key={f.fy} value={f.fy}>FY{f.fy}</option>)}</select></label>
       </div>
 
-      <div className="takeaway">{d.takeaway}</div>
-
       <div className="hk-grid">
         {d.kpis.map((k: any) => {
           const delta = k.prev != null && k.value != null ? k.value - k.prev : null;
@@ -68,6 +66,7 @@ export function Dashboard() {
         })}
       </div>
       <div className="fine">◆ Grows as the Hub is used. In this demo these values are synthetic.</div>
+      <Insights items={d.insights} />
 
       <div className="grid2">
         <Card title="Where projects are today" right={<a href="#/map">What the phases mean →</a>}>

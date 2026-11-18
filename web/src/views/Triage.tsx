@@ -19,7 +19,7 @@ export function Triage() {
   return (
     <>
       <h2 className="vt">Phase review</h2>
-      <div className="vsub">Onboarding queue for imported projects. Source data carries no ESF phase, so ESH suggests one per project from status, transition fields and PoP; an admin confirms or corrects it before gates can be worked. The queue empties as projects are confirmed, and new imports refill it. {admin ? '' : <b>Switch to the J68 admin user to confirm.</b>}</div>
+      <div className="vsub">Onboarding queue for imported projects. Source data carries no ESF phase, so the Hub suggests one per project from status, transition fields and PoP; an admin confirms or corrects it before gates can be worked. The queue empties as projects are confirmed, and new imports refill it. {admin ? '' : <b>Switch to the J68 admin user to confirm.</b>}</div>
       <div className="fbar">
         <select value={program} onChange={e => setProgram(e.target.value)}><option value="">Program: all</option>{meta.programs.map(p => <option key={p.code} value={p.code}>{p.code}</option>)}</select>
         <select value={pm} onChange={e => setPm(e.target.value)}><option value="">PM: all</option>{meta.pms.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>

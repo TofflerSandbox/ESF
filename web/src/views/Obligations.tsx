@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useSort } from '../sort';
-import { Card, ErrorBox, Help, Loading, go, useAsync } from '../ui';
+import { Card, ErrorBox, Help, Insights, Loading, go, useAsync } from '../ui';
 import { HubProposal } from './Ownership';
 
 const CODE: Record<string, { c: string; bg: string; l: string }> = {
@@ -28,10 +28,10 @@ export function Obligations() {
           <div className="vsub">Who owes what to the process at each gate — the ESF Stakeholder Obligation Matrix, tracked live against every project working toward a gate. Click a cell to see what is still owed and by whom.</div></div>
       </div>
 
-      {g3 && <div className="takeaway">
-        At Gate 3 — the funding-commitment gate — co-sponsors have signed for only <b>{g3.met} of {g3.working}</b> projects ({g3.pct}%).
-        {' '}{d.byOrg.filter((o: any) => o.declined > 0).length} sponsoring organizations have declined ownership at Gate 3 at least once — the "WCF perverse incentive" in <a href="#/decisions">senior leader decision #7</a>.
-      </div>}
+      {g3 && <Insights items={[
+        { t: <>Gate 3 funding commitment: co-sponsors have signed for <b>{g3.met} of {g3.working}</b> projects ({g3.pct}%)</>, tone: (g3.pct ?? 0) < 50 ? 'warn' : undefined },
+        d.byOrg.filter((o: any) => o.declined > 0).length > 0 && { t: <>{d.byOrg.filter((o: any) => o.declined > 0).length} sponsoring organizations have declined ownership at Gate 3 at least once (see <a href="#/decisions">senior leader decision #7</a>)</>, tone: 'warn' },
+      ]} />}
 
       <Card title={<>The matrix <Help title="Reading the matrix"><b>K</b> = key decision, cannot be delegated. <b>R</b> = required participation. <b>O</b> = optional or recommended. <b>—</b> = not applicable. Where the Hub records the evidence for an obligation (a gate criterion), the cell shows the share of projects at that gate where it has been delivered.</Help></>} pad={false}>
         <div style={{ overflowX: 'auto' }}>
