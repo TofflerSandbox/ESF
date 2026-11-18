@@ -29,6 +29,7 @@ import { Overlaps } from './views/Overlap';
 import { MyWork } from './views/MyWork';
 import { Icon } from './icons';
 import { Palette } from './Palette';
+import { ChangesProvider, WhatsNew } from './WhatsNew';
 
 export type Meta = {
   me: { id: number; name: string; role: string; person_id: number | null; org_id: number | null };
@@ -138,6 +139,7 @@ export function App() {
 
   return (
     <MetaCtx.Provider value={meta}>
+     <ChangesProvider userId={meta.me.id}>
       <div className={'shell' + (demo ? ' show-demo' : '')}>
         <aside id="side">
           <a className="brand" href="#/"><b>DLA R&amp;D HUB<span>.</span></b><small>Enterprise Scaling Hub</small></a>
@@ -185,6 +187,7 @@ export function App() {
                 <span>Search projects, programs, pages…</span><kbd>Ctrl K</kbd>
               </button>
               <span style={{ flex: 1 }} />
+              <WhatsNew />
               <button className="print-btn" onClick={() => print()} title="Print this page or save it as a PDF">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6 M6 18H4v-7h16v7h-2 M7 14h10v7H7z" /></svg>
                 Print / PDF
@@ -215,6 +218,7 @@ export function App() {
           </footer>
         </div>
       </div>
+     </ChangesProvider>
     </MetaCtx.Provider>
   );
 }

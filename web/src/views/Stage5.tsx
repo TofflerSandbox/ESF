@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useSort } from '../sort';
 import { Card, ErrorBox, Help, Insights, Loading, OrgLink, ProgramLink, VALUE_PATH, d10, fmtMY, go, money, rel, useAsync } from '../ui';
 import { useMeta } from '../App';
+import { FreshDot } from '../WhatsNew';
 
 const $ = (v: number | null | undefined) => (v == null ? '—' : money(v).replace('.00M', 'M'));
 const pc = (v: number | null | undefined) => (v == null ? '—' : `${Math.round(100 * v)}%`);
@@ -95,7 +96,7 @@ export function Stage5() {
               <Th k="realization" num>Delivering</Th><Th k="status">Status</Th><Th k="adoption" num>Adoption</Th><Th k="next">Next review</Th></tr></thead>
             <tbody>{sorted.map((r: any) => (
               <tr key={r.esh_id} onClick={() => go('#/p/' + r.esh_id)}>
-                <td className="ttl">{r.title}<div className="sub mono">{r.esh_id}{r.valuePath ? ` · ${VALUE_PATH[r.valuePath]?.l}` : ''}</div></td>
+                <td className="ttl"><FreshDot esh={r.esh_id} />{r.title}<div className="sub mono">{r.esh_id}{r.valuePath ? ` · ${VALUE_PATH[r.valuePath]?.l}` : ''}</div></td>
                 <td className="sm">{r.operator ? <OrgLink id={r.operator.id} name={r.operator.name} /> : <span className="muted">not named</span>}{isRD(r.operator) && <div className="sub" style={{ color: 'var(--red)' }}>no enterprise owner</div>}</td>
                 <td className="sm"><ProgramLink code={r.program_code} el={r.element_code} /></td>
                 <td className="num sm">{r.months != null ? `${r.months} mo` : '—'}<div className="sub">{r.since ? `since ${fmtMY(r.since)}` : ''}</div></td>

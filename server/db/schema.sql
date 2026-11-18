@@ -335,6 +335,9 @@ ALTER TABLE criterion_def ADD COLUMN IF NOT EXISTS owner text NOT NULL DEFAULT '
 ALTER TABLE app_user DROP CONSTRAINT IF EXISTS app_user_role_check;
 ALTER TABLE app_user ADD COLUMN IF NOT EXISTS org_id int REFERENCES org(id);   -- SPONSOR users act for one organization
 ALTER TABLE app_user ADD CONSTRAINT app_user_role_check CHECK (role IN ('ADMIN','PM','AUTHORITY','VIEWER','J1','SPONSOR'));
+-- "What's new": when the user was last active, and where the previous visit ended (changes after it count as new)
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS seen_at timestamptz;
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS prev_seen_at timestamptz;
 
 -- individual staffing profiles were dropped from the prototype (too much detail for J1's use)
 DROP TABLE IF EXISTS staff_assignment;

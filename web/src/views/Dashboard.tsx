@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
+import { WhatsNewStrip } from '../WhatsNew';
 import { Bars, Card, Donut, EL_COL, ErrorBox, Insights, Loading, PH_COL, PH_SHORT, Stack, VALUE_PATH, go, money, useAsync, DemoMark } from '../ui';
 
 /** A colour per priority owner (MSCs and J-codes), so the priority chart reads at a glance. */
@@ -66,6 +67,7 @@ export function Dashboard() {
         })}
       </div>
       <div className="fine dm">Grows as the Hub is used. In this demo these values are synthetic.</div>
+      <WhatsNewStrip />
       <Insights items={d.insights} />
 
       <div className="grid2">

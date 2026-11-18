@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { useMeta } from '../App';
 import { useSort } from '../sort';
+import { FreshDot } from '../WhatsNew';
 import { Card, ErrorBox, GroupBars, Loading, PH_COL, d10, exportTable, go, useAsync, ProgramLink } from '../ui';
 import { HubProposal, SponsorTag } from './Ownership';
 
@@ -132,7 +133,7 @@ export function Gates({ initial }: { initial?: number }) {
                 const s = STAGES.find(x => x.k === p.stage)!;
                 return (
                   <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
-                    <td className="ttl">{p.title}<div className="sub"><ProgramLink code={p.program_code} name={progName(p.program_code)} full /> · <span className="mono">{p.esh_id}</span></div></td>
+                    <td className="ttl"><FreshDot esh={p.esh_id} />{p.title}<div className="sub"><ProgramLink code={p.program_code} name={progName(p.program_code)} full /> · <span className="mono">{p.esh_id}</span></div></td>
                     <td className="sm"><span className="gx-st" style={{ color: s.c }} title={p.stage === 'hold' ? p.hold_reason ?? '' : s.tip}>{s.l}</span>{p.late && <div className="sub" style={{ color: 'var(--red)' }}>running late</div>}</td>
                     <td><span className="mini-track"><span style={{ width: `${100 * p.done / p.total}%`, background: s.c }} /></span> <span className="mono sm">{p.done}/{p.total}</span></td>
                     <td className="sm">{p.open.length

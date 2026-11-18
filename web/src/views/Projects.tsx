@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { api, qs } from '../api';
 import { useMeta } from '../App';
+import { FreshDot } from '../WhatsNew';
 import { EL_COL, ErrorBox, Loading, OrgList, PhaseChip, StatusChip, d10, exportTable, go, useAsync, ProgramLink } from '../ui';
 import { AssistPanel } from './Assist';
 
@@ -69,7 +70,7 @@ export function Projects({ initial }: { initial: string }) {
             <thead><tr>{th('esh_id', 'ESH ID')}{th('title', 'Project')}{th('program_code', 'Program')}{th('pm', 'PM')}{th('status_code', 'Status')}{th('phase', 'ESF')}<th>Sponsor(s)</th>{th('pop_end', 'PoP end')}<th>Data calls</th></tr></thead>
             <tbody>{rows.map((p: any) => (
               <tr key={p.esh_id} onClick={() => go('#/p/' + p.esh_id)}>
-                <td className="mono code">{p.esh_id}</td>
+                <td className="mono code"><FreshDot esh={p.esh_id} />{p.esh_id}</td>
                 <td className="ttl">{p.title}</td>
                 <td><ProgramLink code={p.program_code} el={p.element_code} name={meta.programs.find(x => x.code === p.program_code)?.name} /></td>
                 <td className="sm">{p.pm ?? '—'}</td>

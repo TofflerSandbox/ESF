@@ -1,6 +1,7 @@
 import { api } from '../api';
 import { useMeta } from '../App';
 import { Card, ErrorBox, Loading, d10, go, rel, useAsync } from '../ui';
+import { FreshDot, WhatsNewStrip } from '../WhatsNew';
 
 const ROLE_SUB: Record<string, string> = {
   PM: 'Your projects: criteria to close, data call responses, and contracts running out',
@@ -25,6 +26,8 @@ export function MyWork() {
           <div className="vsub">{meta.me.name} · {ROLE_SUB[d.role] ?? ''}</div></div>
       </div>
 
+      <WhatsNewStrip />
+
       {T.items > 0 ? (
         <div className="mw-sum">
           <span><b>{T.items}</b> open item{T.items === 1 ? '' : 's'}</span>
@@ -45,7 +48,7 @@ export function MyWork() {
                 <li key={i} className={it.tone ?? ''} onClick={() => go(it.href)}>
                   <span className="mw-dot" aria-hidden="true" />
                   <span className="mw-main">
-                    <a href={it.href} onClick={e => e.stopPropagation()} className="mw-t">{it.title}</a>
+                    <a href={it.href} onClick={e => e.stopPropagation()} className="mw-t">{it.esh_id && <FreshDot esh={it.esh_id} />}{it.title}</a>
                     <span className="mw-w">{it.esh_id && <span className="mono">{it.esh_id} · </span>}{it.what}</span>
                   </span>
                   {it.due && <span className={'mw-due' + (overdue ? ' over' : '')}><b>{rel(it.due, asOf)}</b><span>{d10(it.due)}</span></span>}
