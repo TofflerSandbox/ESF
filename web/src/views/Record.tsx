@@ -6,7 +6,7 @@ import { ProjectDocuments } from './Documents';
 import { HubProposal, SponsorTag } from './Ownership';
 import { ProjectRealization, ProjectValueHistory } from './Realization';
 import { RelatedWork } from './Overlap';
-import { CmImpactDraft } from './Drafts';
+import { DraftPanel, type DraftKind } from './Drafts';
 import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
 
 /** Darker text versions of the status colours, readable on white. */
@@ -31,7 +31,7 @@ export function Record({ esh: arg }: { esh: string }) {
   const { data: r, error, reload } = useAsync(() => api(`/projects/${esh}`), [esh, meta.me.id]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [tabSel, setTabSel] = useState<string | null>(TABS.some(t => t.k === tabArg) ? tabArg : null);
-  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState<DraftKind | null>(null);
   // once the tab bar sticks to the top, it carries the project's title
   useEffect(() => {
     const s = document.querySelector('.rtabs-sentinel'), bar = document.querySelector('.rtabs');
@@ -83,7 +83,8 @@ export function Record({ esh: arg }: { esh: string }) {
       {gate >= 2 && !committed ? ' No transition pathway is committed yet.' : ''} {toGate}</>;
 
   const PathwaysCard = () => (
-    <Card title="Transition pathways">
+    <Card title="Transition pathways" right={(p.esf_phase ?? 0) >= 2 && p.esf_status !== 'SUNSET' && p.esf_status !== 'DESCOPED'
+      ? <button className="draft-btn" onClick={() => setDraftOpen('transition-plan')} title="Assemble a transition plan from the project record">Draft transition plan</button> : undefined}>
 {r.paths.map((t: any) => {
               const missing = [!t.receiver_org_id && 'receiving organization', !t.funding_line && 'funding line', t.path === 'B_POM' && !t.pom_fy && 'POM year'].filter(Boolean) as string[];
               return (
@@ -180,8 +181,8 @@ export function Record({ esh: arg }: { esh: string }) {
       </div>
 
       {msg && <div className={'banner ' + (msg.ok ? 'ok' : 'err')} onClick={() => setMsg(null)}>{msg.t}</div>}
-      {draftOpen && <CmImpactDraft esh={esh} me={meta.me.name} canSave={r.canJ1 || r.canEdit} onClose={() => setDraftOpen(false)}
-        onSaved={(t) => { setDraftOpen(false); setMsg({ ok: true, t }); reload(); }} />}
+      {draftOpen && <DraftPanel kind={draftOpen} esh={esh} me={meta.me.name} canSave={draftOpen === 'transition-plan' ? r.canEdit : r.canJ1 || r.canEdit}
+        onClose={() => setDraftOpen(null)} onSaved={(t) => { setDraftOpen(null); setMsg({ ok: true, t }); reload(); }} />}
       {filled.size > 0 && (
         <div className="banner gap dm">
           <Syn /> <b>Filled with synthetic values</b> because the FY{lastFy} data call left them blank: {[...filled].map(f => FILL_LABEL[f] ?? f).join(', ')}.
@@ -257,13 +258,16 @@ export function Record({ esh: arg }: { esh: string }) {
               {crits.map((c: any) => {
                 const own = c.owner === 'J1' ? r.canJ1 : c.owner === 'SPONSOR' ? r.canSponsor : r.canEdit;
                 const sponsorish = c.owner === 'SPONSOR' || c.proposal;
-                // documents the Hub can draft from the record (the J1 CM Impact Assessment at Gate 2)
-                const drafts = c.owner === 'J1' && c.gate === 2 && c.ord === 6;
+                // documents the Hub can draft from the record: the CM Impact Assessment (Gate 2 #6), the CM statement for the DCG brief
+                // (Gate 3 #6), and the transition plan (Gate 2 #3 "transition path declared", Gate 3 #7 "pathway committed")
+                const draft: DraftKind | null = c.gate === 2 && c.ord === 6 ? 'cm-impact' : c.gate === 3 && c.ord === 6 ? 'cm-statement'
+                  : (c.gate === 2 && c.ord === 3) || (c.gate === 3 && c.ord === 7) ? 'transition-plan' : null;
                 return <CriterionRow key={c.id} c={c} canClose={own} canWaive={sponsorish ? r.canDecide : own && !c.non_waivable}
                   canEdit={(own || (sponsorish && r.canDecide)) && p.esf_source === 'CONFIRMED'} onSave={(b) => act(`/criteria/${c.id}`, 'PUT', b, 'Criterion updated')}
-                  onDraft={drafts ? () => setDraftOpen(true) : undefined} />;
+                  onDraft={draft ? () => setDraftOpen(draft) : undefined} />;
               })}
               {p.esf_source !== 'CONFIRMED' && <div className="note">Criteria can be worked once the phase is confirmed.</div>}
+              {gate === 0 && !r.workforce.screen && <div className="note">No change-impact screen yet. The PM answers it under <button className="linkbtn" onClick={() => setTab('people')}>People →</button> so J1 can take its early look.</div>}
               {r.canDecide && p.esf_source === 'CONFIRMED' && <GateForm gate={gate} onSave={(b) => act('/gates', 'POST', b, 'Gate decision recorded')} />}
             </Card>
           )}
@@ -310,7 +314,12 @@ export function Record({ esh: arg }: { esh: string }) {
 
       {tab === 'people' && (
         <div className="rgrid">
-          <div className="colstack"><Workforce r={r} /></div>
+          <div className="colstack">
+            <ChangeScreen r={r} canScreen={r.canEdit || meta.me.role === 'J1'}
+              onSave={(b) => act('/change-screen', 'PUT', b, 'Change-impact screen saved. J1 sees it for its early look.')}
+              onRead={(b) => act('/change-screen/j1', 'PUT', b, 'J1 early look recorded')} />
+            <Workforce r={r} />
+          </div>
           <div className="colstack">
           <Card title="Points of contact" right={r.contacts.some((c: any) => c.synthetic) ? <Syn /> : undefined}>
             <div className="people">
@@ -390,7 +399,7 @@ function Workforce({ r }: { r: any }) {
         })}
       </div>
       {empty && <div className="note">{(p.esf_phase ?? 0) < 2 && !exited
-        ? 'Who the change reaches is recorded from Phase II, when J1 runs the CM Impact Assessment for the Gate 2 readiness check.'
+        ? 'Who the change reaches is confirmed in Phase II, when J1 runs the CM Impact Assessment for the Gate 2 readiness check. Until then, the intake screen is the estimate.'
         : 'No workforce impact recorded for this project.'}</div>}
 
       {w.impacts.length > 0 && (<>
@@ -414,7 +423,90 @@ function Workforce({ r }: { r: any }) {
   );
 }
 
-function TriageForm({ p, onSave }: { p: any; onSave: (b: any) => Promise<boolean> }) {
+const YNU_L: Record<string, string> = { YES: 'Yes', NO: 'No', UNSURE: 'Not sure yet' };
+const BAND_L: Record<string, string> = { UNDER_10: 'Under 10', '10_99': '10–99', '100_999': '100–999', '1000_PLUS': '1,000 or more', UNKNOWN: 'Don’t know yet' };
+const READ_L: Record<string, { l: string; c: string; bg: string }> = {
+  ENGAGE: { l: 'J1 engages now', c: 'var(--red)', bg: '#FBE9EC' }, MONITOR: { l: 'J1 monitors', c: 'var(--goldD)', bg: 'var(--goldBg)' }, NONE: { l: 'No J1 action needed', c: 'var(--spon)', bg: 'var(--sponBg)' },
+};
+/** Change-impact screen at intake: questions adapted from HCT's CM Impact Assessment, answered by the PM when the project is submitted,
+    so J1 can take its early look. An estimate in bands, never names; the Gate 2 CM Impact Assessment confirms it. */
+const SCREEN_Q: [key: 'works_differently' | 'beyond_one_org' | 'training' | 'bargaining_unit', q: string][] = [
+  ['works_differently', 'Will anyone work differently because of this project?'], ['beyond_one_org', 'Does the change reach more than one organization?'],
+  ['training', 'Will people need training?'], ['bargaining_unit', 'Are bargaining-unit employees likely to be affected?'],
+];
+function ChangeScreen({ r, canScreen, onSave, onRead }: { r: any; canScreen: boolean; onSave: (b: any) => Promise<boolean>; onRead: (b: any) => Promise<boolean> }) {
+  const s = r.workforce.screen;
+  const blank = { works_differently: 'UNSURE', change_types: [] as string[], who: '', people_band: 'UNKNOWN', beyond_one_org: 'UNSURE', training: 'UNSURE', bargaining_unit: 'UNSURE', notes: '' };
+  const [edit, setEdit] = useState(false);
+  const [f, setF] = useState<typeof blank>(blank);
+  const [read, setRead] = useState<{ open: boolean; j1_read: string; j1_note: string }>({ open: false, j1_read: 'MONITOR', j1_note: '' });
+  const start = () => {
+    setF(s ? { works_differently: s.works_differently, change_types: s.change_types ?? [], who: s.who ?? '', people_band: s.people_band, beyond_one_org: s.beyond_one_org,
+      training: s.training, bargaining_unit: s.bargaining_unit, notes: s.notes ?? '' } : blank);
+    setEdit(true);
+  };
+  const no = f.works_differently === 'NO';
+  const save = async () => {
+    const body = {
+      works_differently: f.works_differently, change_types: no ? [] : f.change_types, who: no ? null : f.who || null, people_band: no ? 'UNKNOWN' : f.people_band,
+      beyond_one_org: no ? 'NO' : f.beyond_one_org, training: no ? 'NO' : f.training, bargaining_unit: no ? 'NO' : f.bargaining_unit, notes: f.notes || null,
+    };
+    if (await onSave(body)) setEdit(false);
+  };
+  const tag = s?.j1_read ? READ_L[s.j1_read] : null;
+  return (
+    <Card title="Change-impact screen (intake)" right={<span>{s?.synthetic && <Syn />} {s && !edit && tag && <span className="tag" style={{ color: tag.c, background: tag.bg }}>{tag.l}</span>}</span>}><div className="screen">
+      {!s && !edit && <div className="note">Not answered yet. Seven quick questions, adapted from HCT’s CM Impact Assessment, tell J1 early whether anyone will work differently and who. {canScreen ? '' : 'The PM answers them.'}</div>}
+      {s && !edit && (<>
+        {SCREEN_Q.filter(([k]) => k === 'works_differently' || s.works_differently !== 'NO').map(([k, q]) => <div key={k} className="orgrow"><span className="lbl">{q}</span><span><b>{YNU_L[s[k]]}</b></span></div>)}
+        {s.works_differently !== 'NO' && (<>
+          <div className="orgrow"><span className="lbl">Kind of change</span><span>{s.change_types.length ? s.change_types.map((t: string) => CHANGE_L[t]).join(' · ') : '—'}</span></div>
+          <div className="orgrow"><span className="lbl">Who, roughly</span><span>{s.who ?? '—'}</span></div>
+          <div className="orgrow"><span className="lbl">About how many people</span><span>{BAND_L[s.people_band]}</span></div>
+        </>)}
+        {s.notes && <div className="orgrow"><span className="lbl">Notes</span><span>{s.notes}</span></div>}
+        <div className="note">Screened by {s.screened_by} on {d10(s.screened_at)}. An estimate: the Gate 2 CM Impact Assessment confirms who is affected.
+          {s.j1_read ? <> J1 early look on {d10(s.j1_at)} by {s.j1_by}: <b>{READ_L[s.j1_read].l.toLowerCase()}</b>{s.j1_note ? ` — ${s.j1_note}` : ''}.</> : s.works_differently !== 'NO' ? ' Waiting for J1’s early look.' : ''}</div>
+      </>)}
+      {edit && (
+        <div className="screen-form">
+          {SCREEN_Q.filter(([k]) => k === 'works_differently' || !no).map(([k, q]) => (
+            <label key={k} className="orgrow"><span className="lbl">{q}</span>
+              <select value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })}>{['YES', 'NO', 'UNSURE'].map(v => <option key={v} value={v}>{YNU_L[v]}</option>)}</select></label>
+          ))}
+          {!no && (<>
+            <div className="orgrow"><span className="lbl">Kind of change (any that apply)</span><span>{Object.keys(CHANGE_L).map(t => (
+              <label key={t} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><input type="checkbox" checked={f.change_types.includes(t)}
+                onChange={e => setF({ ...f, change_types: e.target.checked ? [...f.change_types, t] : f.change_types.filter(x => x !== t) })} /> {CHANGE_L[t]}</label>))}</span></div>
+            <label className="orgrow"><span className="lbl">Who, roughly (organizations and kinds of jobs, no names)</span>
+              <input value={f.who} maxLength={1000} onChange={e => setF({ ...f, who: e.target.value })} placeholder="e.g. Inventory managers in DLA Aviation" /></label>
+            <label className="orgrow"><span className="lbl">About how many people?</span>
+              <select value={f.people_band} onChange={e => setF({ ...f, people_band: e.target.value })}>{Object.keys(BAND_L).map(v => <option key={v} value={v}>{BAND_L[v]}</option>)}</select></label>
+          </>)}
+          <label className="orgrow"><span className="lbl">Notes for J1 (optional)</span><input value={f.notes} maxLength={2000} onChange={e => setF({ ...f, notes: e.target.value })} /></label>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}><button className="btn sm" onClick={save}>Save the screen</button><button className="btn sm ghost" onClick={() => setEdit(false)}>Cancel</button></div>
+          {s?.j1_read && <div className="note">Saving changes sends the screen back to J1 for a fresh look.</div>}
+        </div>
+      )}
+      {!edit && (
+        <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {canScreen && <button className="link" onClick={start}>{s ? 'update the screen' : 'answer the screen'}</button>}
+          {r.canJ1 && s && s.works_differently !== 'NO' && !read.open && <button className="link" onClick={() => setRead({ open: true, j1_read: s.j1_read ?? 'MONITOR', j1_note: s.j1_note ?? '' })}>{s.j1_read ? 'change J1’s early look' : 'record J1’s early look'}</button>}
+        </div>
+      )}
+      {read.open && (
+        <span className="inline-form">
+          <select value={read.j1_read} onChange={e => setRead({ ...read, j1_read: e.target.value })}>{Object.keys(READ_L).map(v => <option key={v} value={v}>{READ_L[v].l}</option>)}</select>
+          <input placeholder="Note (optional)" value={read.j1_note} onChange={e => setRead({ ...read, j1_note: e.target.value })} />
+          <button className="btn sm" onClick={async () => { if (await onRead({ j1_read: read.j1_read, j1_note: read.j1_note || null })) setRead({ ...read, open: false }); }}>Save</button>
+          <button className="btn sm ghost" onClick={() => setRead({ ...read, open: false })}>Cancel</button>
+        </span>
+      )}
+    </div></Card>
+  );
+}
+
+function TriageForm({ p, onSave }:{ p: any; onSave: (b: any) => Promise<boolean> }) {
   const [phase, setPhase] = useState<number>(p.esf_phase ?? 0);
   const [status, setStatus] = useState<string>(p.esf_status ?? 'ACTIVE');
   const [note, setNote] = useState('');

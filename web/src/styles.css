@@ -628,6 +628,10 @@ details summary{cursor:pointer;color:var(--j68D);font-size:10.5px}
 .orgrow{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);align-items:baseline}
 .orgrow:last-child{border-bottom:none}
 .orgrow .lbl{width:118px;flex-shrink:0}
+/* change-impact screen: the questions read as sentences, the answers line up beside them */
+.screen .orgrow{align-items:center}
+.screen .orgrow .lbl{width:55%;font-family:inherit;font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--slate)}
+.screen .orgrow input:not([type=checkbox]),.screen .orgrow select{flex:1;min-width:0}
 .org{display:inline-block;font-size:11.5px;background:#F2F0EA;border-radius:4px;padding:2px 7px;margin:2px 4px 2px 0;color:var(--ink)}
 a.org:hover{background:var(--goldBg)}
 .gh-tbl{width:100%;border-collapse:collapse;font-size:12px}

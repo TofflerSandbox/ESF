@@ -12,7 +12,13 @@ const PRIMER = {
   coming: <>Projects heading for deployment, grouped by when they go live and touch real people. Each one shows how many people are affected (counts under 10 are hidden), which organizations, how much of the training is done, and whether union notice is still needed (that adds 30–60 days). Use the windows to plan J1's support: the next 3 months need action now; later windows are for planning.</>,
   kotter: <>DLA's SES Executive Board adopted <b>Kotter's 8 Accelerators</b> to track senior-leader accountability for change. Each sponsoring senior leader is rated 1 (not started) to 5 (consistently demonstrated) on each accelerator. The bars show how scores spread across all leaders, never individuals. The export is a feed for HCT's Enterprise Change Readiness Dashboard.</>,
   sustain: <>Did the change stick? For projects already at scale, the share of the intended users actually using the new capability 30, 90 and 180 days after go-live, alongside whether training happened before or after launch. Low adoption at 180 days means the workforce never fully absorbed the change.</>,
+  screens: <>When a project is submitted, the PM answers a short change-impact screen adapted from HCT's CM Impact Assessment: will anyone work differently, what kind of change, who and about how many, and whether training or bargaining-unit employees are involved. Screens that say yes or "not sure" come here for J1's early look: <b>engage now</b>, <b>monitor</b>, or <b>no J1 action needed</b>. The Gate 2 CM Impact Assessment later confirms the estimate.</>,
   anchors: <>The projects that the real FY26–27 R&D data call aligns to a J1 priority (for example Tech as HR Enabler). Few projects are aligned to J1, though many affect the workforce — the visibility gap J1 described, and the reason J1 needs a seat at the gates.</>,
+};
+
+const BAND: Record<string, string> = { UNDER_10: 'under 10', '10_99': '10–99', '100_999': '100–999', '1000_PLUS': '1,000+', UNKNOWN: 'unknown number of' };
+const READ: Record<string, { l: string; c: string; bg: string }> = {
+  ENGAGE: { l: 'ENGAGE', c: 'var(--red)', bg: '#FBE9EC' }, MONITOR: { l: 'MONITOR', c: 'var(--slate)', bg: '#EDEBE4' }, NONE: { l: 'NO ACTION', c: 'var(--spon)', bg: 'var(--sponBg)' },
 };
 
 /** Go-live windows, in months from today. */
@@ -100,6 +106,21 @@ export function J1() {
           {cur.items.length > 8 && <button className="link" style={{ marginTop: 6 }} onClick={() => setShowAll(!showAll)}>{showAll ? 'Show the first 8' : `Show all ${cur.items.length}`}</button>}
         </Card>
       </div>
+
+      <Card title={<>Early look: screened at intake <Help title="Early look">{PRIMER.screens}</Help></>} id="screens"
+        right={<span className="mono">{k.toRead} to read{d.unscreened ? ` · ${d.unscreened} early project${d.unscreened === 1 ? '' : 's'} not yet screened` : ''}</span>}>
+        <div className="mini-list" style={{ maxHeight: 360, overflowY: 'auto' }}>
+          {d.screens.map((s: any) => (
+            <div key={s.esh_id} className="alert-row" onClick={() => go('#/p/' + s.esh_id + '/people')}>
+              <span className="tag" style={s.j1_read ? { color: READ[s.j1_read].c, background: READ[s.j1_read].bg } : { color: 'var(--goldD)', background: 'var(--goldBg)' }}>{s.j1_read ? READ[s.j1_read].l : 'TO READ'}</span>
+              <span><b>{s.esh_id}</b> · {s.title}{s.synthetic && <> <span className="syn">SYN</span></>}<br />
+                <span className="sub">{PH_SHORT[s.esf_phase]} · {s.works_differently === 'YES' ? 'will change how people work' : 'may change how people work'} · {BAND[s.people_band]} people
+                  {s.beyond_one_org === 'YES' ? ' · more than one organization' : ''}{s.bargaining_unit === 'YES' ? ' · bargaining unit' : ''}{s.who ? ` · ${s.who}` : ''}</span></span>
+            </div>
+          ))}
+          {d.screens.length === 0 && <div className="note" style={{ padding: '6px 16px' }}>No intake screen says anyone will work differently.</div>}
+        </div>
+      </Card>
 
       <Card title={<>Senior leader readiness — Kotter's 8 Accelerators <Help title="Senior leader readiness">{PRIMER.kotter}</Help></>} id="leaders" right={<a className="btn sm" href="/api/j1/readiness.csv" download>Export for HCT Readiness Dashboard (CSV)</a>}>
         {d.kotter.map((a: any) => (

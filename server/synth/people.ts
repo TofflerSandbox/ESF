@@ -45,7 +45,7 @@ type Impact = { pid: number; org: string; series: string; headcount: number; cha
 export async function removePeople(tx: Transaction) {
   await tx.exec(`DELETE FROM project_contact WHERE synthetic; DELETE FROM org_person WHERE synthetic;
     DELETE FROM project_sponsor_leader WHERE leader_id IN (SELECT id FROM senior_leader WHERE synthetic);
-    DELETE FROM senior_leader WHERE synthetic; DELETE FROM adoption_measure WHERE synthetic; DELETE FROM workforce_impact WHERE synthetic;`);
+    DELETE FROM senior_leader WHERE synthetic; DELETE FROM adoption_measure WHERE synthetic; DELETE FROM workforce_impact WHERE synthetic; DELETE FROM change_screen WHERE synthetic;`);
 }
 
 export async function seedPeople(tx: Transaction, seed: number, asOf: Date, scenarioIds: Set<number>) {
@@ -88,6 +88,33 @@ export async function seedPeople(tx: Transaction, seed: number, asOf: Date, scen
     }
   }
   if (flagship) for (const i of impacts.filter(i => i.pid === flagship.id)) { i.course = 'LMS: Responsible use of Gen AI at DLA'; i.tpct = i.series === '2210' ? 64 : 21; i.timing = 'BEFORE_GO_LIVE'; }
+
+  /* ── 1b. change-impact screens at intake (most new projects; some older ones screened when the Hub started) ── */
+  const band = (n: number) => (n < 10 ? 'UNDER_10' : n < 100 ? '10_99' : n < 1000 ? '100_999' : '1000_PLUS');
+  const screens: any[] = [];
+  for (const p of projects) {
+    const phase = p.esf_phase ?? 0;
+    if (p.esf_status === 'AT_SCALE' || phase > 3) continue;
+    const r = rngFor(seed, 'screen:' + p.esh_id);
+    if (p.id !== flagship?.id && !r.chance(phase <= 1 ? 0.85 : 0.45)) continue;
+    const mine = impacts.filter(i => i.pid === p.id);
+    const toolish = AI.test(p.title) || /tool|software|app\b|digital|platform|dashboard|system|automat/i.test(p.title);
+    const works = mine.length || p.id === flagship?.id ? 'YES' : toolish ? (r.chance(0.75) ? 'YES' : 'UNSURE') : r.pick(['YES', 'UNSURE', 'UNSURE', 'NO', 'NO'] as const);
+    const types = works === 'NO' ? [] : mine.length ? [...new Set(mine.map(i => i.change))] : [toolish ? 'NEW_TOOL' : r.pick(['PROCESS', 'NEW_TOOL'] as const), ...(r.chance(0.2) ? ['PROCESS'] : [])].filter((x, k, a) => a.indexOf(x) === k);
+    const total = mine.reduce((a, i) => a + i.headcount, 0);
+    const sers = seriesFor(p.title).slice(0, 2).map(s => SERIES[s] + 's').join(' and ');
+    const beyond = p.id === flagship?.id ? 'YES' : works === 'NO' ? 'NO' : r.pick(['YES', 'NO', 'NO', 'UNSURE'] as const);
+    const read = r.chance(phase === 0 ? 0.35 : 0.8);
+    const pb = works === 'NO' ? 'UNKNOWN' : mine.length ? band(total) : r.pick(['UNDER_10', '10_99', '10_99', '100_999', 'UNKNOWN'] as const);
+    screens.push({
+      pid: p.id, works, types, pb, beyond,
+      who: works === 'NO' ? null : p.id === flagship?.id ? 'Analysts, inventory managers and contract specialists across every MSC; J6 for support' : `${sers} in ${p.sponsor ?? r.pick(MSCS)}${beyond === 'YES' ? ', and at least one other organization' : ''}`,
+      training: works === 'NO' ? 'NO' : types.includes('NEW_TOOL') ? 'YES' : r.pick(['YES', 'UNSURE'] as const),
+      bu: works === 'NO' ? 'NO' : types.includes('ROLE_REDESIGN') ? 'YES' : types.includes('PROCESS') ? 'UNSURE' : r.pick(['NO', 'UNSURE'] as const),
+      at: add(asOf, phase <= 1 ? -r.between(5, 75) : -r.between(120, 420)),
+      read: !read || works === 'NO' ? null : pb === '1000_PLUS' || beyond === 'YES' ? 'ENGAGE' : pb === 'UNDER_10' ? 'NONE' : 'MONITOR',
+    });
+  }
 
   /* ── 2. senior leader readiness (Kotter) — one assessment per sponsoring position; shown only in aggregate ── */
   const sponsorOrgs = [...new Set(projects.filter(p => p.sponsor).map(p => p.sponsor as string))].sort();
@@ -184,6 +211,10 @@ export async function seedPeople(tx: Transaction, seed: number, asOf: Date, scen
   for (const i of impacts)
     await tx.query(`INSERT INTO workforce_impact (project_id, org, series, series_title, headcount, change_type, training_course, training_pct, training_timing, union_notice, go_live, synthetic)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)`, [i.pid, i.org, i.series, SERIES[i.series], i.headcount, i.change, i.course, i.tpct, i.timing, i.union, i.go ? iso(i.go) : null]);
+  for (const s of screens)
+    await tx.query(`INSERT INTO change_screen (project_id, works_differently, change_types, who, people_band, beyond_one_org, training, bargaining_unit, notes, screened_by, screened_at, j1_read, j1_note, j1_by, j1_at, synthetic)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NULL,'PM (at intake)',$9,$10,NULL,$11,$12,true)`,
+      [s.pid, s.works, s.types, s.who, s.pb, s.beyond, s.training, s.bu, iso(s.at), s.read, s.read ? 'J1 Human Capital Transformation' : null, s.read ? iso(add(s.at, 6)) : null]);
   for (const [pid, pcts] of adoption) {
     const p = projects.find(x => x.id === pid);
     const since = p?.scale_at ? (asOf.getTime() - new Date(p.scale_at).getTime()) / 864e5 : 0;
@@ -204,7 +235,7 @@ export async function seedPeople(tx: Transaction, seed: number, asOf: Date, scen
   for (const s of stories)
     await tx.query('INSERT INTO demo_scenario (ord, esh_id, title, story, look_for, track) VALUES ($1,$2,$3,$4,$5,\'J1\')', [s.ord, s.p.esh_id, s.title, s.story, s.look]);
 
-  console.log(`J1 layer: ${impacts.length} workforce-impact rows, ${leaders.length} readiness assessments (aggregate only), ${adoption.size} projects with adoption measures.`);
+  console.log(`J1 layer: ${screens.length} intake change-impact screens, ${impacts.length} workforce-impact rows,${leaders.length} readiness assessments (aggregate only), ${adoption.size} projects with adoption measures.`);
   console.log(`Contacts: ${people.filter(p => p.focal != null).length} R&D focal points, ${people.length} people, ${contacts.length} project POC links.`);
   for (const s of stories) console.log(`J1 story ${s.ord} · ${s.title}: ${s.p.esh_id} ${s.p.title}`);
 }

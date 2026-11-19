@@ -103,6 +103,11 @@ export function registerMyWork(app: FastifyInstance, db: PGlite, deps: { wrap: W
 
     if (me.role === 'J1') {
       const j1 = await get('/api/j1', me);
+      const BAND: Record<string, string> = { UNDER_10: 'under 10', '10_99': '10–99', '100_999': '100–999', '1000_PLUS': '1,000+', UNKNOWN: 'an unknown number of' };
+      add('screens', 'Intake screens to read', 'New projects whose PM says people will, or may, work differently. Your early look decides whether J1 engages now, monitors, or needs to do nothing.',
+        j1.screens.filter((s: any) => !s.j1_read).map((s: any): Item => ({ esh_id: s.esh_id, title: s.title,
+          what: `${s.works_differently === 'YES' ? 'Will change how people work' : 'May change how people work'} · ${BAND[s.people_band]} people${s.beyond_one_org === 'YES' ? ' · more than one organization' : ''}`,
+          href: '#/p/' + s.esh_id + '/people', tone: s.people_band === '1000_PLUS' || s.beyond_one_org === 'YES' ? 'warn' : undefined })), '#/j1');
       add('gate', 'J1 items holding a gate', 'A project cannot pass its gate while the J1 item is open. Those with every other criterion closed are waiting only on J1.',
         j1.waiting.map((w: any): Item => ({ esh_id: w.esh_id, title: w.title, what: `Gate ${w.gate} · ${w.others_closed} of ${w.others} other criteria closed`, href: '#/p/' + w.esh_id, tone: w.others_closed === w.others ? 'warn' : undefined })), '#/j1');
       add('golive', 'Going live in the next 90 days', 'Workforce readiness before people are affected.',

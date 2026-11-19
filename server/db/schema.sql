@@ -383,6 +383,28 @@ CREATE TABLE IF NOT EXISTS workforce_impact (
   synthetic boolean NOT NULL DEFAULT false
 );
 
+-- Change-impact screen at intake: the PM's first answer to "will anyone work differently, and who?", given when the project
+-- is submitted (questions adapted from HCT's CM Impact Assessment). J1 reads it for its early look; the Gate 2 CM Impact
+-- Assessment refines it into workforce_impact. Estimates only: no names, people in bands.
+CREATE TABLE IF NOT EXISTS change_screen (
+  project_id int PRIMARY KEY REFERENCES project(id) ON DELETE CASCADE,
+  works_differently text NOT NULL CHECK (works_differently IN ('YES','NO','UNSURE')),
+  change_types text[] NOT NULL DEFAULT '{}',
+  who text,
+  people_band text NOT NULL DEFAULT 'UNKNOWN' CHECK (people_band IN ('UNDER_10','10_99','100_999','1000_PLUS','UNKNOWN')),
+  beyond_one_org text NOT NULL DEFAULT 'UNSURE' CHECK (beyond_one_org IN ('YES','NO','UNSURE')),
+  training text NOT NULL DEFAULT 'UNSURE' CHECK (training IN ('YES','NO','UNSURE')),
+  bargaining_unit text NOT NULL DEFAULT 'UNSURE' CHECK (bargaining_unit IN ('YES','NO','UNSURE')),
+  notes text,
+  screened_by text NOT NULL,
+  screened_at date NOT NULL,
+  j1_read text CHECK (j1_read IN ('NONE','MONITOR','ENGAGE')),
+  j1_note text,
+  j1_by text,
+  j1_at date,
+  synthetic boolean NOT NULL DEFAULT false
+);
+
 CREATE TABLE IF NOT EXISTS adoption_measure (
   project_id int NOT NULL REFERENCES project(id) ON DELETE CASCADE,
   day int NOT NULL,                      -- days after go-live: 30 | 90 | 180

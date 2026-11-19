@@ -238,7 +238,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       q('SELECT t.*, o.name receiver FROM transition_pathway t LEFT JOIN org o ON o.id = t.receiver_org_id WHERE t.project_id=$1 ORDER BY t.id'),
       db.query<any>('SELECT * FROM audit_event WHERE entity=\'project\' AND entity_id=$1 ORDER BY at DESC, id DESC LIMIT 50', [p.esh_id]).then(r => r.rows),
     ]);
-    const [impacts, adoption, contacts, fills, documents] = await Promise.all([
+    const [impacts, adoption, contacts, fills, documents, screen] = await Promise.all([
       q('SELECT * FROM workforce_impact WHERE project_id=$1 ORDER BY headcount DESC'),
       q('SELECT day, adoption_pct, synthetic FROM adoption_measure WHERE project_id=$1 ORDER BY day'),
       q(`SELECT pc.role, op.name, op.title, op.office, op.email, op.phone, op.focal_rank, op.synthetic, o.id org_id, o.name org
@@ -247,8 +247,9 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       q('SELECT field FROM project_fill WHERE project_id=$1 ORDER BY field').then(rs => rs.map((x: any) => x.field)),
       q(`SELECT id, doc_type, title, criterion_id, file_name, size, uploaded_by, uploaded_at, synthetic, (storage_key IS NOT NULL) has_file
          FROM document WHERE project_id=$1 ORDER BY uploaded_at DESC`),
+      q('SELECT * FROM change_screen WHERE project_id=$1').then(rs => rs[0] ?? null),
     ]);
-    const workforce = { impacts, adoption };
+    const workforce = { impacts, adoption, screen };
     return { project: p, pm, orgs, ext, contracts, snapshots, priorities, phases, gates, criteria, funding, values, paths, audit: auditRows, workforce, contacts, fills, documents,
       canEdit: canEdit(me, p), canJ1: me.role === 'J1' || me.role === 'ADMIN', canDecide: me.role === 'ADMIN' || me.role === 'AUTHORITY', canTriage: me.role === 'ADMIN',
       canSponsor: me.role === 'ADMIN' || (me.role === 'SPONSOR' && orgs.some((o: any) => o.role === 'SPONSOR' && o.id === me.org_id)) };
@@ -273,6 +274,42 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       await tx.query(`UPDATE project SET ${keys.map((k, i) => `${k} = $${i + 2}`).join(', ')}, updated_at = now() WHERE id = $1`, [p.id, ...keys.map(k => body[k])]);
       await audit(tx, me.name, 'project', p.esh_id, 'EDIT', before, Object.fromEntries(keys.map(k => [k, body[k]])));
       return { ok: true, changed: keys.length };
+    });
+  }));
+
+  /* ── change-impact screen at intake: the PM answers, J1 reads it for its early look ── */
+  const YNU = z.enum(['YES', 'NO', 'UNSURE']);
+  const Screen = z.object({
+    works_differently: YNU, change_types: z.array(z.enum(['NEW_TOOL', 'PROCESS', 'ROLE_REDESIGN'])).max(3),
+    who: z.string().max(1000).nullable(), people_band: z.enum(['UNDER_10', '10_99', '100_999', '1000_PLUS', 'UNKNOWN']),
+    beyond_one_org: YNU, training: YNU, bargaining_unit: YNU, notes: z.string().max(2000).nullable(),
+  }).strict();
+  app.put('/api/projects/:esh/change-screen', wrap(async (req, me) => {
+    const b = Screen.parse(req.body);
+    return db.transaction(async tx => {
+      const p = await projectByEsh(tx, (req.params as any).esh);
+      if (!(canEdit(me, p) || me.role === 'J1')) throw new HttpError(403, `${me.name} cannot screen ${p.esh_id}`);
+      const before = (await tx.query<any>('SELECT * FROM change_screen WHERE project_id=$1', [p.id])).rows[0] ?? null;
+      // a changed screen goes back to J1 for a fresh read
+      await tx.query(`INSERT INTO change_screen (project_id, works_differently, change_types, who, people_band, beyond_one_org, training, bargaining_unit, notes, screened_by, screened_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        ON CONFLICT (project_id) DO UPDATE SET works_differently=$2, change_types=$3, who=$4, people_band=$5, beyond_one_org=$6, training=$7, bargaining_unit=$8, notes=$9,
+          screened_by=$10, screened_at=$11, j1_read=NULL, j1_note=NULL, j1_by=NULL, j1_at=NULL, synthetic=false`,
+        [p.id, b.works_differently, b.change_types, b.who?.trim() || null, b.people_band, b.beyond_one_org, b.training, b.bargaining_unit, b.notes?.trim() || null, me.name, today()]);
+      await audit(tx, me.name, 'project', p.esh_id, 'CHANGE_SCREEN', before && { works_differently: before.works_differently, people_band: before.people_band }, b);
+      return { ok: true };
+    });
+  }));
+  const ScreenRead = z.object({ j1_read: z.enum(['NONE', 'MONITOR', 'ENGAGE']), j1_note: z.string().max(1000).nullable() }).strict();
+  app.put('/api/projects/:esh/change-screen/j1', wrap(async (req, me) => {
+    requireRole(me, 'J1', 'ADMIN');
+    const b = ScreenRead.parse(req.body);
+    return db.transaction(async tx => {
+      const p = await projectByEsh(tx, (req.params as any).esh);
+      const r = await tx.query(`UPDATE change_screen SET j1_read=$2, j1_note=$3, j1_by=$4, j1_at=$5 WHERE project_id=$1`, [p.id, b.j1_read, b.j1_note?.trim() || null, me.name, today()]);
+      if (!r.affectedRows) throw new HttpError(409, `${p.esh_id} has no change-impact screen yet`);
+      await audit(tx, me.name, 'project', p.esh_id, 'J1_EARLY_LOOK', null, b);
+      return { ok: true };
     });
   }));
 
@@ -486,7 +523,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   app.get('/api/j1', wrap(async () => {
     const asOf = AS_OF.toISOString().slice(0, 10);
     const q = (sql: string, params: unknown[] = []) => db.query<any>(sql, params).then(r => r.rows);
-    const [coming, gates, waiting, kotter, sustain, anchors] = await Promise.all([
+    const [coming, gates, waiting, kotter, sustain, anchors, screens, unscreened] = await Promise.all([
       q(`SELECT p.esh_id, p.title, p.esf_phase, p.esf_status, p.esf_source, min(w.go_live) go_live, sum(w.headcount)::int headcount,
            string_agg(DISTINCT w.org, ' · ') orgs, string_agg(DISTINCT w.series_title, ' · ') series, round(avg(w.training_pct))::int training_pct,
            bool_or(w.union_notice = 'PENDING') union_pending, bool_or(w.change_type = 'ROLE_REDESIGN') redesign
@@ -519,8 +556,16 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       q(`SELECT DISTINCT ON (p.id) p.esh_id, p.title, p.program_code, p.esf_phase, p.esf_status, p.esf_source, pri.label, pri.fy
          FROM project p JOIN project_priority pp ON pp.project_id = p.id JOIN priority pri ON pri.id = pp.priority_id AND pri.owner = 'J1'
          ORDER BY p.id, pri.fy DESC`),
+      // intake screens that say people will (or may) work differently: unread first, then newest
+      q(`SELECT p.esh_id, p.title, p.esf_phase, p.esf_status, p.esf_source, s.works_differently, s.change_types, s.who, s.people_band, s.beyond_one_org,
+           s.training, s.bargaining_unit, s.screened_at, s.j1_read, s.j1_at, s.synthetic
+         FROM change_screen s JOIN project p ON p.id = s.project_id
+         WHERE p.esf_status IN ('ACTIVE','HOLD') AND s.works_differently <> 'NO'
+         ORDER BY (s.j1_read IS NULL) DESC, s.screened_at DESC, p.esh_id`),
+      q(`SELECT count(*)::int n FROM project p WHERE p.esf_status IN ('ACTIVE','HOLD') AND p.esf_phase <= 1
+           AND NOT EXISTS (SELECT 1 FROM change_screen s WHERE s.project_id = p.id)`).then(rs => rs[0].n),
     ]);
-    const in12 = coming.filter((c: any) => new Date(c.go_live).getTime() < AS_OF.getTime() + 365 * 864e5);
+    const in12 =coming.filter((c: any) => new Date(c.go_live).getTime() < AS_OF.getTime() + 365 * 864e5);
     const adopt180 = sustain.map((s: any) => s.adoption?.['180']).filter((x: any) => x != null).sort((a: number, b: number) => a - b);
     const leaders = kotter[0]?.n ?? 0;
     const kpis = {
@@ -530,8 +575,9 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
       leaders,
       leaderAvg: kotter.length ? Math.round(10 * kotter.reduce((a: number, k: any) => a + k.mean, 0) / kotter.length) / 10 : null,
       adoption180: adopt180.length ? adopt180[Math.floor(adopt180.length / 2)] : null,
+      toRead: screens.filter((s: any) => !s.j1_read).length,
     };
-    return { asOf, kpis, coming, gates, waiting, kotter, sustain, anchors };
+    return { asOf, kpis, coming, gates, waiting, kotter, sustain, anchors, screens, unscreened };
   }));
 
   /** Aggregate senior leader readiness as a flat file — a feed for HCT's Enterprise Change Readiness Dashboard, not a replacement for it. */
