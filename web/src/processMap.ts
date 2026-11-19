@@ -21,6 +21,8 @@ export const STAGES: PMStage[] = [
       { t: 'J68 role at this stage', items: [n('J68 Director: reviews and approves intake package'), n('J68 PM: builds problem statement, identifies co-sponsor'), n('J68 PM: confirms no program duplication')] },
       { t: 'Co-sponsor role at this stage', items: [n('Sign LOI at SES level — verbal support is not sufficient', ['LOI']), n('Name a specific GS-15 or equivalent as point of contact'),
         n('Declare intended value path (Path A or Path B)'), n('Commit to monthly engagement through Phase I')] },
+      { t: 'J1 role at this stage', items: [n('Screen the idea: will it change jobs, skills or staffing?'), n('Agree a workforce staffing plan with the PM before Gate 0'),
+        n('Flag bargaining-unit impact early, so notification lead times are known')] },
     ],
   },
   {
@@ -36,6 +38,7 @@ export const STAGES: PMStage[] = [
         n('Capability gap assessment'), n('Design document review'), n('Requirements document review')] },
       { t: 'Co-sponsor role at this stage', items: [n('Facilitate vendor site visit to DLA facility'), n('Provide operational input to CONOPS review'),
         n('Attend Gate 1 review and reaffirm or withdraw commitment')] },
+      { t: 'J1 role at this stage', items: [n('Light touch: track how the feasibility findings change the workforce picture'), n('Update the impact estimate if the scope shifts')] },
     ],
   },
   {
@@ -51,6 +54,8 @@ export const STAGES: PMStage[] = [
         n('Path B: POM program line identified, PPBE timing confirmed'), w('No named path = Gate 2 is not cleared')] },
       { t: 'Co-sponsor role at this stage', items: [n('Reaffirm commitment at start of Phase II'), n('Declare financial path (A or B) — binding at PRR'),
         n('Begin J8 Finance engagement for rate or POM preparation'), n('Attend Gate 2 review')] },
+      { t: 'J1 role at this stage', items: [n('Gate 2 readiness check: who is affected, by organization and job series'), n('Identify training needs and when training must happen'),
+        n('Gate 2 cannot pass until the readiness check is closed')] },
     ],
   },
   {
@@ -65,6 +70,8 @@ export const STAGES: PMStage[] = [
         n('J68 PM: coordinates multi-site deployment with co-sponsor'), n('J68 PM: prepares Gate 4 handoff package')] },
       { t: 'Co-sponsor role at this stage', items: [n('SES: sign Gate 3 commitment document — non-delegable'), n('Provide co-funding per signed commitment'),
         n('Facilitate multi-site deployment at DLA facilities'), n('Manage real operational users during limited deployment'), n('Begin preparing for formal sustainment acceptance at Gate 4')] },
+      { t: 'J1 role at this stage', items: [n('Write the change management statement for the Gate 3 decision brief'), n('Confirm training is scheduled before go-live at each deployment site'),
+        n('Confirm union notification is complete where required'), n('Gate 3 cannot pass until the statement is on the brief')] },
       { t: 'Funding transition behaviors', items: [c('J68 bridge: SE and integration testing activities only (RDT&E-eligible)'), c('Co-sponsor covers operational costs from their budget'),
         w('Operational costs on J68 RDT&E = fiscal law risk')] },
     ],
@@ -79,6 +86,8 @@ export const STAGES: PMStage[] = [
       { t: 'J68 role at this stage', items: [n('Advisory only — no contractual or fiscal role'), n('Delivers comprehensive technical handoff package'), n('Closes portfolio entry upon Gate 4 confirmation')] },
       { t: 'Co-sponsor role at this stage', items: [n('Accept all technical documentation and design history'), n('Manage vendor relationships and contract modifications'),
         n('Execute WCF rate billing or POM program line management'), n('Submit annual performance data to J68 portfolio archive')] },
+      { t: 'J1 role at this stage', items: [n('Gate 4 workforce absorption: confirm affected staff are trained and roles are updated'), n('Start adoption measurement: 30 days after go-live'),
+        n('Gate 4 cannot pass until workforce absorption is confirmed')] },
       { t: 'Descope option', items: [n('Partial enterprise accepted if full scope infeasible'), n('Narrower WCF scope or adjusted POM request'), n('Partial success formally credited and documented')] },
     ],
   },
@@ -91,6 +100,8 @@ export const STAGES: PMStage[] = [
       { t: 'Path B — success indicators', items: [c('Cost avoidance realized and tracked vs. baseline'), c('Savings reflected in POM baseline for future cycles'), c('Annual reviews confirm sustained ROI')] },
       { t: 'J68 role at this stage', items: [n('None — portfolio entry fully archived')] },
       { t: 'Co-sponsor role at this stage', items: [n('Submit annual performance report to J68 archive'), n('Manage rate reviews (Path A) or POM adjustments (Path B)')] },
+      { t: 'J1 role at this stage', items: [n('Measure adoption at 90 and 180 days after go-live'), n('Report sponsor-leader change readiness, in aggregate only'),
+        n('Feed lessons on change into the next project\'s intake screening')] },
     ],
   },
 ];

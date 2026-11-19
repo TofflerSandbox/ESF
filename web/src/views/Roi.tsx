@@ -114,7 +114,10 @@ function AskRoi({ horizon, onLens, onClose }: { horizon: number; onLens: (l: Len
           <b>Ask about ROI</b>
           <small>Ask about projected return on the active portfolio, or what fielded projects are delivering. Filter by program, sponsor, value path or topic, group, or rank.</small>
         </div>
-        <button className="as-x" onClick={onClose} title="Hide" aria-label="Hide the ROI assistant">⟩</button>
+        <div className="as-actions">
+          {turns.length > 0 && <button className="as-new" onClick={() => { setTurns([]); setMore({}); setQ(''); }} disabled={busy} title="Clear this conversation and start again">New chat</button>}
+          <button className="as-x" onClick={onClose} title="Hide" aria-label="Hide the ROI assistant">⟩</button>
+        </div>
       </div>
 
       <div className="as-body">

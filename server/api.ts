@@ -18,6 +18,7 @@ import { DOC_TYPES } from './esfContent.js';
 import { registerMyWork } from './mywork.js';
 import { registerChanges } from './changes.js';
 import { registerDemo } from './demo.js';
+import { registerDrafts } from './drafts.js';
 
 type User = { id: number; name: string; role: 'ADMIN' | 'PM' | 'AUTHORITY' | 'VIEWER' | 'J1' | 'SPONSOR'; person_id: number | null; org_id: number | null };
 
@@ -396,6 +397,7 @@ export function registerApi(app: FastifyInstance, db: PGlite) {
   registerMyWork(app, db, { wrap });
   registerChanges(app, db, { wrap });
   registerDemo(app, db, { wrap, requireRole: requireRole as any });
+  registerDrafts(app, db, { wrap, projectByEsh: projectByEsh as any });
 
   /* ── funding, value case, pathways ── */
   const Funding = z.object({ fy: z.number().int().min(2015).max(2040), appropriation: z.enum(['RDT&E BA3', 'RDT&E BA6', 'O&M', 'WCF', 'Procurement']),

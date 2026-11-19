@@ -57,7 +57,10 @@ export function AssistPanel({ onShow, onClose }: { onShow: (ids: string[], label
           <b>Ask the portfolio</b>
           <small>Ask in plain English. Searches titles, descriptions, programs, priorities and partners, including related terms.</small>
         </div>
-        <button className="as-x" onClick={onClose} title="Hide the assistant" aria-label="Hide the assistant">⟩</button>
+        <div className="as-actions">
+          {turns.length > 0 && <button className="as-new" onClick={() => { setTurns([]); setMore({}); setQ(''); }} disabled={busy} title="Clear this conversation and start again">New chat</button>}
+          <button className="as-x" onClick={onClose} title="Hide the assistant" aria-label="Hide the assistant">⟩</button>
+        </div>
       </div>
 
       <div className="as-body">

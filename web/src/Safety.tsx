@@ -32,7 +32,12 @@ export function DemoControls({ savedAt }: { savedAt: string | null }) {
   const run = async (what: 'reset' | 'save') => {
     setBusy(true); setMsg(null);
     try {
-      if (what === 'reset') { await api('/demo/reset', { method: 'POST' }); location.reload(); return; }
+      if (what === 'reset') {
+        await api('/demo/reset', { method: 'POST' });
+        // the question sidebars keep their history in this tab; a reset starts them empty too
+        try { ['esh.assist', 'esh.roiask'].forEach(k => sessionStorage.removeItem(k)); } catch { /* storage unavailable */ }
+        location.reload(); return;
+      }
       const r = await api<any>('/demo/baseline', { method: 'POST' }); setMsg(`Baseline saved ${d10(r.savedAt)}.`);
     } catch (e: any) { setMsg(e.message); }
     setBusy(false); setAsk(null);

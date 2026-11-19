@@ -112,7 +112,7 @@ export function registerMyWork(app: FastifyInstance, db: PGlite, deps: { wrap: W
 
     if (me.role === 'ADMIN') {
       add('docket', 'Ready, not on a board docket', 'Every criterion is closed. Add them to the next board for their gate.',
-        allProjects.filter((p: any) => p.ready && !p.board).map((p: any): Item => ({ esh_id: p.esh_id, title: p.title, what: `Gate ${p.gate}${G?.gates[p.gate]?.nextBoard ? ` · next board ${fd(G.gates[p.gate].nextBoard.board_date)}` : ' · no board scheduled'}`, href: '#/boards', tone: G?.gates[p.gate]?.nextBoard ? undefined : 'warn' })), '#/gates');
+        allProjects.filter((p: any) => p.ready && !p.board).map((p: any): Item => ({ esh_id: p.esh_id, title: p.title, what: `Gate ${p.gate}${G?.gates[p.gate]?.nextBoard ? ` · next board ${fd(G.gates[p.gate].nextBoard.board_date)}` : ' · no board scheduled'}`, href: '#/p/' + p.esh_id + '/gate', tone: G?.gates[p.gate]?.nextBoard ? undefined : 'warn' })), '#/gates');
       if (call) {
         const dc = await get(`/api/datacalls/${call.fy}`, me);
         add('review', `FY${call.fy} data call: responses to review`, 'Approve each response or return it to the PM with a note.',

@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useMeta } from '../App';
 import { DOCS, EXIT, EXIT_NOTE, STAGES, type PMItem } from '../processMap';
 import { Card, PH_COL, PH_TXT, go, useAsync } from '../ui';
+import { HubProposal } from './Ownership';
 
 const ZONE: Record<string, { l: string; c: string }> = {
   pre: { l: 'No J68 funds', c: '#CFCBBF' }, rdte: { l: 'RDT&E funded (J68)', c: '#3F90CB' },
@@ -63,8 +64,8 @@ export function ProcessMap({ initial }: { initial?: number }) {
         <div className="pm-stats">{s.stats.map(([l, v]) => <div key={l}><span>{l}</span><b>{v}</b></div>)}</div>
         <div className="pm-cols">
           {s.sections.map(sec => (
-            <div key={sec.t} className={'pm-sec' + (/co-sponsor/i.test(sec.t) ? ' spon' : /j68 role/i.test(sec.t) ? ' j68' : '')}>
-              <div className="lbl">{sec.t}</div>
+            <div key={sec.t} className={'pm-sec' + (/co-sponsor/i.test(sec.t) ? ' spon' : /j68 role/i.test(sec.t) ? ' j68' : /j1 role/i.test(sec.t) ? ' j1' : '')}>
+              <div className="lbl">{sec.t}{/j1 role/i.test(sec.t) && <HubProposal />}</div>
               {sec.items.map(item)}
             </div>
           ))}

@@ -6,6 +6,7 @@ import { ProjectDocuments } from './Documents';
 import { HubProposal, SponsorTag } from './Ownership';
 import { ProjectRealization, ProjectValueHistory } from './Realization';
 import { RelatedWork } from './Overlap';
+import { CmImpactDraft } from './Drafts';
 import { Card, Chip, ErrorBox, Loading, Locator, OrgLink, PH_COL, PH_NAME, PH_SHORT, ROLE_LABEL, STATUS, STATUS_COL, Syn, VALUE_PATH, VP, d10, money, sup, useAsync } from '../ui';
 
 /** Darker text versions of the status colours, readable on white. */
@@ -30,6 +31,7 @@ export function Record({ esh: arg }: { esh: string }) {
   const { data: r, error, reload } = useAsync(() => api(`/projects/${esh}`), [esh, meta.me.id]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [tabSel, setTabSel] = useState<string | null>(TABS.some(t => t.k === tabArg) ? tabArg : null);
+  const [draftOpen, setDraftOpen] = useState(false);
   // once the tab bar sticks to the top, it carries the project's title
   useEffect(() => {
     const s = document.querySelector('.rtabs-sentinel'), bar = document.querySelector('.rtabs');
@@ -178,6 +180,8 @@ export function Record({ esh: arg }: { esh: string }) {
       </div>
 
       {msg && <div className={'banner ' + (msg.ok ? 'ok' : 'err')} onClick={() => setMsg(null)}>{msg.t}</div>}
+      {draftOpen && <CmImpactDraft esh={esh} me={meta.me.name} canSave={r.canJ1 || r.canEdit} onClose={() => setDraftOpen(false)}
+        onSaved={(t) => { setDraftOpen(false); setMsg({ ok: true, t }); reload(); }} />}
       {filled.size > 0 && (
         <div className="banner gap dm">
           <Syn /> <b>Filled with synthetic values</b> because the FY{lastFy} data call left them blank: {[...filled].map(f => FILL_LABEL[f] ?? f).join(', ')}.
@@ -253,8 +257,11 @@ export function Record({ esh: arg }: { esh: string }) {
               {crits.map((c: any) => {
                 const own = c.owner === 'J1' ? r.canJ1 : c.owner === 'SPONSOR' ? r.canSponsor : r.canEdit;
                 const sponsorish = c.owner === 'SPONSOR' || c.proposal;
+                // documents the Hub can draft from the record (the J1 CM Impact Assessment at Gate 2)
+                const drafts = c.owner === 'J1' && c.gate === 2 && c.ord === 6;
                 return <CriterionRow key={c.id} c={c} canClose={own} canWaive={sponsorish ? r.canDecide : own && !c.non_waivable}
-                  canEdit={(own || (sponsorish && r.canDecide)) && p.esf_source === 'CONFIRMED'} onSave={(b) => act(`/criteria/${c.id}`, 'PUT', b, 'Criterion updated')} />;
+                  canEdit={(own || (sponsorish && r.canDecide)) && p.esf_source === 'CONFIRMED'} onSave={(b) => act(`/criteria/${c.id}`, 'PUT', b, 'Criterion updated')}
+                  onDraft={drafts ? () => setDraftOpen(true) : undefined} />;
               })}
               {p.esf_source !== 'CONFIRMED' && <div className="note">Criteria can be worked once the phase is confirmed.</div>}
               {r.canDecide && p.esf_source === 'CONFIRMED' && <GateForm gate={gate} onSave={(b) => act('/gates', 'POST', b, 'Gate decision recorded')} />}
@@ -422,7 +429,7 @@ function TriageForm({ p, onSave }: { p: any; onSave: (b: any) => Promise<boolean
   );
 }
 
-function CriterionRow({ c, canEdit, canClose = canEdit, canWaive = canEdit && !c.non_waivable, onSave }: { c: any; canEdit: boolean; canClose?: boolean; canWaive?: boolean; onSave: (b: any) => Promise<boolean> }) {
+function CriterionRow({ c, canEdit, canClose = canEdit, canWaive = canEdit && !c.non_waivable, onSave, onDraft }: { c: any; canEdit: boolean; canClose?: boolean; canWaive?: boolean; onSave: (b: any) => Promise<boolean>; onDraft?: () => void }) {
   const [edit, setEdit] = useState(false);
   const [status, setStatus] = useState(c.status);
   const [ev, setEv] = useState(c.evidence ?? '');
@@ -447,7 +454,10 @@ function CriterionRow({ c, canEdit, canClose = canEdit, canWaive = canEdit && !c
           </span>
         )}
       </span>
-      {canEdit && !edit && <button className="link" onClick={() => setEdit(true)}>update</button>}
+      <span className="crit-act">
+        {onDraft && c.status === 'PENDING' && <button className="draft-btn" onClick={onDraft} title="Assemble a draft of this document from the project record">Draft from the record</button>}
+        {canEdit && !edit && <button className="link" onClick={() => setEdit(true)}>update</button>}
+      </span>
     </div>
   );
 }
